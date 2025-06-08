@@ -313,7 +313,11 @@ compute_eigenvalue_fidelity <- function(hatsa_object, true_eigenvalues_list, k_t
     
     # Avoid correlation with zero variance vectors
     cor_val <- NA_real_
-    if (stats::var(est_lambdas_comp) > 1e-9 && stats::var(true_lambdas_comp) > 1e-9) {
+    var_est <- stats::var(est_lambdas_comp)
+    var_true <- stats::var(true_lambdas_comp)
+    if (is.na(var_est)) var_est <- 0
+    if (is.na(var_true)) var_true <- 0
+    if (var_est > 1e-9 && var_true > 1e-9) {
         cor_val <- tryCatch(stats::cor(est_lambdas_comp, true_lambdas_comp),
                               error = function(e) NA_real_)
     } else if (identical(est_lambdas_comp, true_lambdas_comp)) {
