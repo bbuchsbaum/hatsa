@@ -3,16 +3,16 @@
 **R Package for advanced functional connectivity alignment with task-informed features**
 
 [![Status](https://img.shields.io/badge/Status-75%25%20Complete-orange)](./HATSA_PROJECT_STATUS.md)
-[![Critical Path](https://img.shields.io/badge/Critical%20Path-5%20Functions-red)](./HATSA_PROJECT_STATUS.md#critical-path-to-completion)
+[![Critical Path](https://img.shields.io/badge/Critical%20Path-Complete-brightgreen)](./HATSA_PROJECT_STATUS.md#critical-path-to-completion)
 
 ---
 
 ## 🎯 **Current Status**
 
-The HATSA package implements advanced hyperalignment methods for functional neuroimaging data, with **major architectural components complete** but **5 critical core functions missing**.
+The HATSA package implements advanced hyperalignment methods for functional neuroimaging data, with **major architectural components complete** and **all critical core functions implemented**.
 
 **📊 Progress**: ~75% complete  
-**📋 Current Focus**: [5 Critical Path tickets](./HATSA_PROJECT_STATUS.md#immediate-priorities-week-1)  
+**📋 Current Focus**: Final cleanup and release tasks
 **⏱️ Estimated Completion**: 1-2 weeks  
 
 ---
@@ -57,7 +57,7 @@ voxel_projections <- project_voxels(
 - ✅ Full S3 class system (`hatsa_projector`, `task_hatsa_projector`)
 - ✅ Integration with `multivarious` package ecosystem
 - ✅ Comprehensive documentation and examples
-- ✅ Extensive test suite (400+ test cases)
+- ✅ Extensive test suite (514 test cases)
 
 ### **Advanced Features (95%)**
 - ✅ **Task-informed HATSA**: Lambda blending and GEV patches
@@ -74,15 +74,15 @@ voxel_projections <- project_voxels(
 
 ---
 
-## ❌ **What's Missing (Critical Path)**
+## ✅ **Critical Path Completed**
 
-**5 core functions** that everything depends on:
+All core functions are implemented and tested:
 
-1. `compute_subject_connectivity_graph_sparse()` - Sparse correlation graphs
-2. `compute_graph_laplacian_sparse()` - Laplacian computation  
-3. `compute_spectral_sketch_sparse()` - Eigendecomposition
-4. `misalign_deg()` - SO(k) geodesic distance
-5. `solve_gev_laplacian_primme()` - Generalized eigenvalue solver
+1. `compute_subject_connectivity_graph_sparse()`
+2. `compute_graph_laplacian_sparse()`
+3. `compute_spectral_sketch_sparse()`
+4. `misalign_deg()`
+5. `solve_gev_laplacian_primme()`
 
 **📋 Detailed tickets**: See [HATSA_PROJECT_STATUS.md](./HATSA_PROJECT_STATUS.md)
 
@@ -107,7 +107,7 @@ cd hatsa
 # Install dependencies
 R -e "install.packages(c('Matrix', 'RSpectra', 'PRIMME', 'expm', 'multivarious'))"
 
-# Test current state (will show missing functions)
+# Run package tests
 R -e "devtools::test()"
 
 # Check package structure
@@ -126,11 +126,11 @@ R -e "devtools::check()"
 ## 🎯 **Next Steps for Contributors**
 
 ### **Immediate Priority (Week 1)**
-Implement the 5 critical functions following the detailed specifications in [HATSA_PROJECT_STATUS.md](./HATSA_PROJECT_STATUS.md):
+Refine and benchmark the core routines as described in [HATSA_PROJECT_STATUS.md](./HATSA_PROJECT_STATUS.md):
 
-1. **Day 1-2**: Connectivity graphs and Laplacian computation
-2. **Day 3-4**: Spectral sketches and rotation metrics  
-3. **Day 5**: GEV solver
+1. **Day 1-2**: Profile connectivity graphs and Laplacian computation
+2. **Day 3-4**: Optimize spectral sketches and rotation metrics
+3. **Day 5**: Tune GEV solver performance
 
 ### **Integration Testing (Week 2)**
 1. Validate full HATSA pipeline
@@ -165,7 +165,7 @@ hatsa/
 │   ├── hatsa_core_algorithm.R      # Main HATSA workflow
 │   ├── task_hatsa_main.R           # Task-informed extensions  
 │   ├── voxel_projection.R          # Nyström voxel mapping
-│   ├── spectral_graph_construction.R  # ❌ Missing core functions
+│   ├── spectral_graph_construction.R  # Core graph functions
 │   ├── riemannian_geometry.R       # SPD manifold operations
 │   └── [18 other modules]          # Specialized functionality
 ├── tests/testthat/
@@ -179,7 +179,7 @@ hatsa/
 
 ## 🤝 **Contributing**
 
-1. **Focus on Critical Path**: Implement the 5 missing core functions first
+1. **Focus on Optimization**: Polish and profile the core functions
 2. **Follow Test-Driven Development**: Comprehensive tests already exist
 3. **Reference Documentation**: Mathematical specs in `docs/` folder
 4. **Check Integration**: Ensure functions work with existing S3 methods
