@@ -6,7 +6,8 @@
 #' between subjects, based on specified SPD matrix representations derived from
 #' the HATSA object (e.g., covariance of aligned coefficients or various FC matrices).
 #'
-#' @param object A `hatsa_projector` or `task_hatsa_projector` object.
+#' @param object A `hatsa_projector` or `task_hatsa_projector` object,
+#'   or directly a list of SPD matrices.
 #' @param type Character string indicating the type of SPD representation to use.
 #'   Commonly `"cov_coeffs"` (default) for the `k x k` covariance of aligned
 #'   spectral coefficients. Other types (e.g., `"fc_conn"`, `"fc_task"`) would
@@ -256,12 +257,106 @@ riemannian_dispersion_spd.hatsa_projector <- function(object,
   
   return(list(
     mean_spd_matrix = current_mean_matrix,
-    distances_to_mean = distances_to_mean_vals, 
+    distances_to_mean = distances_to_mean_vals,
     num_valid_subjects = num_valid_subjects,
     original_num_subjects = original_num_subjects,
     mean_dispersion = mean(distances_to_mean_vals, na.rm = TRUE),
     median_dispersion = stats::median(distances_to_mean_vals, na.rm = TRUE)
   ))
+}
+
+#' @rdname riemannian_dispersion_spd
+#' @export
+riemannian_dispersion_spd.list <- function(object,
+                                           use_geometric_median = FALSE,
+                                           spd_regularize_epsilon = 1e-6,
+                                           verbose = FALSE,
+                                           ...) {
+
+  valid_spd_matrices_with_names <- Filter(function(m) is.matrix(m) && isSymmetric.matrix(m, tol = 1e-9) &&
+                                             !all(is.na(m)) && all(dim(m) > 0), object)
+
+  num_valid_subjects <- length(valid_spd_matrices_with_names)
+  original_num_subjects <- length(object)
+
+  empty_return <- list(mean_spd_matrix = NULL,
+                       distances_to_mean = setNames(numeric(0), character(0)),
+                       num_valid_subjects = num_valid_subjects,
+                       original_num_subjects = original_num_subjects,
+                       mean_dispersion = NA_real_,
+                       median_dispersion = NA_real_)
+
+  if (num_valid_subjects == 0) {
+    if (verbose) message_stage("No valid SPD matrices found to compute dispersion.", interactive_only = TRUE)
+    empty_return$num_valid_subjects <- 0
+    return(empty_return)
+  }
+
+  if (num_valid_subjects == 1) {
+    single_matrix <- valid_spd_matrices_with_names[[1]]
+    single_matrix_name <- names(valid_spd_matrices_with_names)[1]
+    if (is.null(single_matrix_name) || single_matrix_name == "") single_matrix_name <- "1"
+
+    if (verbose) message_stage("Only one SPD matrix provided. Dispersion is 0.", interactive_only = TRUE)
+
+    return(list(mean_spd_matrix = single_matrix,
+                distances_to_mean = setNames(0, single_matrix_name),
+                num_valid_subjects = 1,
+                original_num_subjects = original_num_subjects,
+                mean_dispersion = 0,
+                median_dispersion = 0))
+  }
+
+  mean_matrix_metric <- "logeuclidean"
+  if (use_geometric_median) {
+    if (requireNamespace("shapes", quietly = TRUE)) {
+      mean_matrix_metric <- "airm"
+      if (verbose && interactive()) message_stage("Attempting AIRM Fréchet mean (via shapes::mediancov).", interactive_only = TRUE)
+    } else {
+      if (verbose && interactive()) message_stage("`shapes` package not available for AIRM Fréchet mean. Using iterative Log-Euclidean mean.", interactive_only = TRUE)
+    }
+  } else {
+    if (verbose && interactive()) message_stage("Using iterative Log-Euclidean Fréchet mean.", interactive_only = TRUE)
+  }
+
+  current_mean_matrix <- frechet_mean_spd(S_list = unname(valid_spd_matrices_with_names),
+                                          metric = mean_matrix_metric,
+                                          regularize_epsilon = spd_regularize_epsilon,
+                                          verbose = verbose,
+                                          ...)
+
+  if (is.null(current_mean_matrix)) {
+    if (verbose) message_stage("Failed to compute mean SPD matrix. Cannot calculate dispersion.", interactive_only = TRUE)
+    empty_return$distances_to_mean <- setNames(rep(NA_real_, num_valid_subjects), names(valid_spd_matrices_with_names))
+    return(empty_return)
+  }
+
+  distance_metric_to_mean <- "logeuclidean"
+
+  distances_to_mean_vals <- sapply(valid_spd_matrices_with_names, function(S_i) {
+    dist_val <- NA_real_
+    if (!is.null(S_i) && !is.null(current_mean_matrix)) {
+      dist_val <- tryCatch({
+        if (distance_metric_to_mean == "airm") {
+          airm_distance(S_i, current_mean_matrix, regularize_epsilon = spd_regularize_epsilon, ...)
+        } else {
+          riemannian_distance_spd(S_i, current_mean_matrix, regularize_epsilon = spd_regularize_epsilon, ...)
+        }
+      }, error = function(e) {
+        warning(sprintf("Distance calculation failed for matrix '%s' to mean: %s",
+                        names(S_i) %||% "unknown", e$message))
+        NA_real_
+      })
+    }
+    dist_val
+  })
+
+  return(list(mean_spd_matrix = current_mean_matrix,
+              distances_to_mean = distances_to_mean_vals,
+              num_valid_subjects = num_valid_subjects,
+              original_num_subjects = original_num_subjects,
+              mean_dispersion = mean(distances_to_mean_vals, na.rm = TRUE),
+              median_dispersion = stats::median(distances_to_mean_vals, na.rm = TRUE)))
 }
 
 # Placeholder for task_hatsa_projector methods if they are to be different
