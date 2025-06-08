@@ -22,6 +22,11 @@
 #'
 #' @return A `k x k` rotation matrix `R`.
 #'
+#' @details
+#' When the spectral dimension `k` is 1, the SVD-based determinant correction is
+#' unnecessary. In this case the rotation is simply the sign of the scalar
+#' cross-product `M`, i.e. `R <- matrix(sign(M), 1, 1)`.
+#'
 #' @importFrom Matrix Diagonal
 #' @importFrom stats median
 #' @export
@@ -166,10 +171,14 @@ solve_procrustes_rotation_weighted <- function(A_source, T_target,
   }
 
   M <- crossprod(A_w, T_w) # k_dims x k_dims matrix
-  
+
   if (all(abs(M) < 1e-14)) {
       warning("Cross-product matrix M (weighted) is near zero; rotation is ill-defined. Returning identity.")
       return(diag(k_dims))
+  }
+
+  if (k_dims == 1) {
+      return(matrix(sign(M), 1, 1))
   }
   
   svd_M <- svd(M)
