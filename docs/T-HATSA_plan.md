@@ -204,7 +204,7 @@ The chosen name based on the discussion will be **task_hatsa (Task-Informed HATS
 
 **Module: Testing (task_hatsa Specific)**
 *   `[ ]` **TCK-TSKTST-001:** Test `compute_W_task_from_activations` and `compute_W_task_from_encoding` (incl. similarity methods).
-*   `[ ]` **TCK-TSKTST-002:** Test `compute_graph_correlation` (union/zero-fill Spearman).
+*   `[X]` **TCK-TSKTST-002:** Test `compute_graph_correlation` (union/zero-fill Spearman).
 *   `[ ]` **TCK-TSKTST-004:** Test `residualize_graph_on_subspace` (low-rank formula, re-sparsify, re-z-score).
 *   `[ ]` **TCK-TSKTST-005:** Test `project_features_to_spectral_space` (orthogonal projection logic).
 *   `[ ]` **TCK-TSKTST-005.5 (NEW):** Test `residualize_matrix_on_subspace`.
