@@ -235,6 +235,13 @@ perform_gpa_refinement <- function(A_originals_list, n_refine, k,
 #'   - `R_final_list`: List of final subject-specific rotation matrices (k x k).
 #'   - `T_anchor_final`: The final group anchor template matrix (m_rows x k).
 #'   - `R_bar_final`: The Fréchet mean of the final `R_final_list`.
+#'
+#' @details
+#' Matrices in `A_originals_list` are checked to be numeric and to have
+#' dimensions `m_rows x k` before the initial template is computed.
+#' Invalid matrices are ignored with their indices reported in a warning.
+#' If all matrices are invalid, the function returns identity rotations and an
+#' `NA` template rather than stopping with an error.
 #' @importFrom stats svd det
 #' @keywords internal
 perform_geometric_gpa_refinement <- function(A_originals_list,
@@ -278,16 +285,42 @@ perform_geometric_gpa_refinement <- function(A_originals_list,
     }
   }
 
-  # Initial template T_template
+  # --- Validate anchor matrices prior to template initialization ---
+  valid_A_indices <- integer(0)
+  invalid_A_indices <- integer(0)
+  for (i in seq_len(N)) {
+    Ai <- A_originals_list[[i]]
+    if (is.null(Ai) || !is.numeric(Ai) || !is.matrix(Ai) ||
+        nrow(Ai) != m_rows || ncol(Ai) != k) {
+      invalid_A_indices <- c(invalid_A_indices, i)
+    } else {
+      valid_A_indices <- c(valid_A_indices, i)
+    }
+  }
+
+  if (length(valid_A_indices) == 0) {
+    warning("All matrices in A_originals_list are invalid. Returning identity rotations.")
+    R_id_list <- replicate(N, diag(k), simplify = FALSE)
+    return(list(R_final_list = R_id_list,
+                T_anchor_final = matrix(NA, nrow = m_rows, ncol = k),
+                R_bar_final = diag(k)))
+  }
+
+  if (length(invalid_A_indices) > 0) {
+    warning(sprintf("Ignoring invalid anchor matrices at indices: %s",
+                    paste(invalid_A_indices, collapse = ", ")))
+  }
+
+  # Initial template T_template using only valid matrices
   T_sum_initial <- matrix(0, nrow = m_rows, ncol = k)
   valid_configs_count_initial <- 0
-  for (i in 1:N) {
-    if (!is.null(A_originals_list[[i]]) && !is.null(R_list[[i]])) {
+  for (i in valid_A_indices) {
+    if (!is.null(R_list[[i]])) {
       T_sum_initial <- T_sum_initial + (A_originals_list[[i]] %*% R_list[[i]])
       valid_configs_count_initial <- valid_configs_count_initial + 1
     }
   }
-  if (valid_configs_count_initial == 0) stop("No valid initial configurations (A_i R_i) to compute initial template.")
+
   T_template <- T_sum_initial / valid_configs_count_initial
   
   R_bar_current_iter <- NULL # Used for Riemannian mode's initial_mean for frechet_mean_so_k
