@@ -767,7 +767,16 @@ print.summary.hatsa_projector <- function(x, ...) {
 #'
 #' @return A named list containing reconstruction error metrics. The structure depends
 #'   on the `type` requested, typically including `mean_error` and `per_subject_error`.
-#'   For `type="non_anchors"`, it may also include `per_parcel_error` if implemented.
+#'   For `type="non_anchors"`, it also includes `per_parcel_error`.
+#'
+#' @examples
+#' # Assuming `fit_obj` is a hatsa_projector from `run_hatsa_core()`
+#' # Anchor reconstruction error
+#' # reconstruction_error(fit_obj, type = "anchors")
+#' # Sanity check using all parcels
+#' # reconstruction_error(fit_obj, type = "all_parcels")
+#' # Predict non-anchor parcels from anchors
+#' # reconstruction_error(fit_obj, type = "non_anchors")
 #' @export
 reconstruction_error <- function(object, type = "anchors", ...) {
   UseMethod("reconstruction_error")
@@ -864,17 +873,94 @@ reconstruction_error.hatsa_projector <- function(object, type = "anchors", ...) 
     results$mean_error <- mean(subject_errors, na.rm = TRUE)
     
   } else if (type == "all_parcels") {
-    # To be implemented
-    results$notes <- "Type 'all_parcels' not yet fully implemented."
-    # Logic: U_reconstructed_i = U_aligned_i %*% t(R_i)
-    # Error: ||U_orig_i - U_reconstructed_i||_F
-    # U_aligned_list_local <- .get_U_aligned_list(object)
+    if (N_subjects == 0 || k == 0) {
+      results$notes <- "Skipped: N_subjects or k is 0."
+      return(results)
+    }
+    if (is.null(U_original_list) || is.null(R_final_list)) {
+      results$notes <- "Skipped: U_original_list or R_final_list missing."
+      return(results)
+    }
+
+    U_aligned_list_local <- .get_U_aligned_list(object)
+    subject_errors <- numeric(N_subjects)
+    for (i in seq_len(N_subjects)) {
+      U_orig_i <- U_original_list[[i]]
+      R_i <- R_final_list[[i]]
+      U_aligned_i <- U_aligned_list_local[[i]]
+
+      if (is.null(U_orig_i) || is.null(U_aligned_i) || is.null(R_i) ||
+          !is.matrix(U_orig_i) || !is.matrix(U_aligned_i) ||
+          nrow(U_orig_i) != V_p || nrow(U_aligned_i) != V_p ||
+          ncol(U_orig_i) != k || ncol(U_aligned_i) != k ||
+          !is.matrix(R_i) || any(dim(R_i) != c(k, k))) {
+        subject_errors[i] <- NA
+        next
+      }
+
+      U_recon_i <- U_aligned_i %*% t(R_i)
+      subject_errors[i] <- norm(U_orig_i - U_recon_i, type = "F")
+    }
+
+    results$per_subject_error <- subject_errors
+    results$mean_error <- mean(subject_errors, na.rm = TRUE)
 
   } else if (type == "non_anchors") {
-    # To be implemented
-    results$notes <- "Type 'non_anchors' not yet fully implemented."
-    # Logic: Predict U_NA_aligned_i from U_A_aligned_i
-    # U_aligned_list_local <- .get_U_aligned_list(object)
+    if (N_subjects == 0 || k == 0 || num_anchors == 0) {
+      results$notes <- "Skipped: N_subjects, k, or num_anchors is 0."
+      return(results)
+    }
+    if (is.null(U_original_list)) {
+      results$notes <- "Skipped: U_original_list missing."
+      return(results)
+    }
+
+    U_aligned_list_local <- .get_U_aligned_list(object)
+    non_anchor_indices <- setdiff(seq_len(V_p), anchor_indices)
+    n_non <- length(non_anchor_indices)
+
+    subject_errors <- numeric(N_subjects)
+    per_parcel_err_accum <- rep(0, n_non)
+    valid_counts <- 0
+    lambda <- 1e-4
+
+    for (i in seq_len(N_subjects)) {
+      U_orig_i <- U_original_list[[i]]
+      U_aligned_i <- U_aligned_list_local[[i]]
+
+      if (is.null(U_orig_i) || is.null(U_aligned_i) ||
+          !is.matrix(U_orig_i) || !is.matrix(U_aligned_i) ||
+          nrow(U_orig_i) != V_p || ncol(U_orig_i) != k ||
+          nrow(U_aligned_i) != V_p || ncol(U_aligned_i) != k) {
+        subject_errors[i] <- NA
+        next
+      }
+
+      A_orig <- U_orig_i[anchor_indices, , drop = FALSE]
+      NA_orig <- U_orig_i[non_anchor_indices, , drop = FALSE]
+      A_align <- U_aligned_i[anchor_indices, , drop = FALSE]
+      NA_align <- U_aligned_i[non_anchor_indices, , drop = FALSE]
+
+      G <- A_orig %*% t(A_orig) + lambda * diag(num_anchors)
+      W <- NA_orig %*% t(A_orig) %*% solve(G)
+      NA_pred <- W %*% A_align
+
+      row_err <- sqrt(rowSums((NA_align - NA_pred)^2))
+      subject_errors[i] <- mean(row_err)
+
+      if (all(!is.na(row_err))) {
+        per_parcel_err_accum <- per_parcel_err_accum + row_err
+        valid_counts <- valid_counts + 1
+      }
+    }
+
+    results$per_subject_error <- subject_errors
+    results$mean_error <- mean(subject_errors, na.rm = TRUE)
+    if (valid_counts > 0) {
+      results$per_parcel_error <- per_parcel_err_accum / valid_counts
+    } else {
+      results$per_parcel_error <- rep(NA_real_, n_non)
+    }
 
   } else {
     stop(sprintf("Unknown reconstruction error type: '%s'. Must be 'anchors', 'all_parcels', or 'non_anchors'.", type))
