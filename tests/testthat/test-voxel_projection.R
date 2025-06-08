@@ -134,6 +134,11 @@ test_that("compute_voxel_basis_nystrom: basic functionality and dimensions", {
     voxel_coords, parcel_coords, parcel_comps$U_orig_parcel, parcel_comps$Lambda_orig_parcel,
     n_nearest_parcels = 0
   ))
+  # Error when n_nearest_parcels exceeds number of parcels
+  expect_error(compute_voxel_basis_nystrom(
+    voxel_coords, parcel_coords, parcel_comps$U_orig_parcel, parcel_comps$Lambda_orig_parcel,
+    n_nearest_parcels = V_p + 1
+  ))
   
   # Error for invalid kernel_sigma
   expect_error(compute_voxel_basis_nystrom(
