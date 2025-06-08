@@ -243,3 +243,4 @@ run_hatsa_core <- function(subject_data_list, anchor_indices, spectral_rank_k,
   
   return(projector_object)
 }
+

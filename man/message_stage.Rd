@@ -2,16 +2,17 @@
 % Please edit documentation in R/utils.R
 \name{message_stage}
 \alias{message_stage}
-\title{Helper for printing stage messages, optionally only in interactive sessions}
+\title{Helper for status messages}
 \usage{
 message_stage(message_text, interactive_only = FALSE)
 }
 \arguments{
-\item{message_text}{Message to print.}
 
-\item{interactive_only}{Logical, if TRUE, message only if session is interactive.}
+\item{message_text}{Text message to display.}
+\item{verbose}{Whether to print the message.}
+\item{interactive_only}{Print only in interactive mode.}
 }
 \description{
-Helper for printing stage messages, optionally only in interactive sessions
+Prints a timestamped message when \code{verbose} is TRUE. If \code{interactive_only} is TRUE, the message is emitted only for interactive sessions.
 }
 \keyword{internal}
