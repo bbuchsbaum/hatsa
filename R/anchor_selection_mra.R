@@ -133,14 +133,16 @@ select_anchors_mra <- function(U_original_list_pilot,
     num_current_anchors <- length(current_anchor_indices)
     if (num_current_anchors < 1) return(list(kappa = Inf, dispersion = Inf, score = -Inf))
 
+    # Cache anchor rows for each subject once
+    anchor_rows_list <- lapply(U_original_list_pilot, function(U_subj) {
+      if (is.null(U_subj) || nrow(U_subj) < max(current_anchor_indices)) return(NULL)
+      U_subj[current_anchor_indices, , drop = FALSE]
+    })
+
     # Metric 1: Kappa of the Euclidean mean of anchor rows from U_original_list_pilot
     kappa_val <- Inf
     if (num_current_anchors >= min_anchors_for_metrics || num_current_anchors >= k_spectral_rank) {
-        anchor_matrices_pilot <- lapply(U_original_list_pilot, function(U_subj) {
-            if (is.null(U_subj) || nrow(U_subj) < max(current_anchor_indices)) return(NULL)
-            U_subj[current_anchor_indices, , drop = FALSE]
-        })
-        valid_anchor_matrices <- Filter(Negate(is.null), anchor_matrices_pilot)
+        valid_anchor_matrices <- Filter(Negate(is.null), anchor_rows_list)
         if (length(valid_anchor_matrices) > 0) {
             # Check all matrices have same dim: num_current_anchors x k_spectral_rank
             if (!all(sapply(valid_anchor_matrices, function(m) all(dim(m) == c(num_current_anchors, k_spectral_rank))))) {
@@ -153,13 +155,12 @@ select_anchors_mra <- function(U_original_list_pilot,
             warning("No valid pilot anchor matrices for kappa calculation.")
         }
     }
-    
+
     # Metric 2: Riemannian Dispersion of covariance matrices of anchor rows
     dispersion_val <- Inf
     if (num_current_anchors >= min_anchors_for_metrics || num_current_anchors >= k_spectral_rank) { # Need enough rows for cov
-        spd_list_pilot <- lapply(U_original_list_pilot, function(U_subj) {
-            if (is.null(U_subj) || nrow(U_subj) < max(current_anchor_indices)) return(NULL)
-            anchor_rows_subj <- U_subj[current_anchor_indices, , drop = FALSE]
+        spd_list_pilot <- lapply(anchor_rows_list, function(anchor_rows_subj) {
+            if (is.null(anchor_rows_subj)) return(NULL)
             if (nrow(anchor_rows_subj) < 2 || nrow(anchor_rows_subj) < k_spectral_rank) return(NULL) # cov needs multiple observations
             tryCatch(stats::cov(anchor_rows_subj), error = function(e) NULL)
         })
@@ -257,21 +258,20 @@ select_anchors_mra <- function(U_original_list_pilot,
                         i, num_to_select_additionally, length(candidate_pool), length(selected_anchors)))
     }
     
-    iter_scores <- data.frame(candidate_idx = integer(), score = numeric(), kappa = numeric(), dispersion = numeric())
-
-    for (candidate_anchor_idx in candidate_pool) {
+    scores_list <- lapply(candidate_pool, function(candidate_anchor_idx) {
       tentative_anchors <- sort(unique(c(selected_anchors, candidate_anchor_idx)))
       metrics <- .evaluate_anchor_set(tentative_anchors)
-      
-      iter_scores <- rbind(iter_scores, data.frame(candidate_idx = candidate_anchor_idx, 
-                                                    score = metrics$score, 
-                                                    kappa = metrics$kappa, 
-                                                    dispersion = metrics$dispersion))
+      data.frame(candidate_idx = candidate_anchor_idx,
+                 score = metrics$score,
+                 kappa = metrics$kappa,
+                 dispersion = metrics$dispersion)
+    })
 
-      if (metrics$score > best_current_iteration_score) {
-        best_current_iteration_score <- metrics$score
-        best_candidate_this_iteration <- candidate_anchor_idx
-      }
+    iter_scores <- do.call(rbind, scores_list)
+    if (nrow(iter_scores) > 0) {
+      best_idx <- which.max(iter_scores$score)
+      best_current_iteration_score <- iter_scores$score[best_idx]
+      best_candidate_this_iteration <- iter_scores$candidate_idx[best_idx]
     }
     
     # Sort iter_scores for review (optional)
