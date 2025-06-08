@@ -368,59 +368,48 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
   summary2 <- Matrix::summary(W_graph2)
 
   # Filter for upper triangle (i < j)
-  # Using base subset for potential slight speed advantage on large summaries
-  edges1 <- subset(summary1, summary1$i < summary1$j, select = c("i", "j", "x"))
-  edges2 <- subset(summary2, summary2$i < summary2$j, select = c("i", "j", "x"))
+  edges1 <- summary1[summary1$i < summary1$j, , drop = FALSE]
+  edges2 <- summary2[summary2$i < summary2$j, , drop = FALSE]
 
-  # Rename columns for merging
-  names(edges1) <- c("row", "col", "w1")
-  names(edges2) <- c("row", "col", "w2")
-
-  # Merge based on row and col to get the union of edges (full outer join)
-  # Handle empty edge cases
   if (nrow(edges1) == 0 && nrow(edges2) == 0) {
-      return(NA_real_) # No edges in either graph
-  } else if (nrow(edges1) == 0) {
-      merged_edges <- data.frame(row = edges2$row, col = edges2$col, w1 = 0, w2 = edges2$w2)
-  } else if (nrow(edges2) == 0) {
-      merged_edges <- data.frame(row = edges1$row, col = edges1$col, w1 = edges1$w1, w2 = 0)
-  } else {
-       merged_edges <- merge(edges1, edges2, by = c("row", "col"), all = TRUE)
+    return(NA_real_)
   }
 
+  # Vectorised union using matching on edge indices
+  idx1 <- paste(edges1$i, edges1$j, sep = "-")
+  idx2 <- paste(edges2$i, edges2$j, sep = "-")
+  all_idx <- union(idx1, idx2)
+  pos1 <- match(all_idx, idx1)
+  pos2 <- match(all_idx, idx2)
+  w1 <- ifelse(is.na(pos1), 0, edges1$x[pos1])
+  w2 <- ifelse(is.na(pos2), 0, edges2$x[pos2])
 
   # Sample if needed
-  num_edges <- nrow(merged_edges)
+  num_edges <- length(all_idx)
   if (num_edges > max_edges && is.finite(max_edges) && max_edges > 0) {
     if (interactive()) {
-        message(sprintf("Sampling %d edges from union of %d for correlation calculation.", max_edges, num_edges))
+      message(sprintf("Sampling %d edges from union of %d for correlation calculation.", max_edges, num_edges))
     }
     sample_indices <- sample.int(num_edges, size = max_edges, replace = FALSE)
-    merged_edges <- merged_edges[sample_indices, ]
+    w1 <- w1[sample_indices]
+    w2 <- w2[sample_indices]
+    num_edges <- max_edges
   }
 
-  # Fill missing values (NAs introduced by the full outer join) with 0
-  merged_edges$w1[is.na(merged_edges$w1)] <- 0
-  merged_edges$w2[is.na(merged_edges$w2)] <- 0
-
-  # Compute Spearman correlation
-  if (nrow(merged_edges) < 2) {
+  if (num_edges < 2) {
     warning("Too few edges (< 2) in the sampled union to compute correlation. Returning NA.")
     return(NA_real_)
   }
 
   # Check for zero variance before attempting correlation
-  sd1 <- stats::sd(merged_edges$w1)
-  sd2 <- stats::sd(merged_edges$w2)
+  sd1 <- stats::sd(w1)
+  sd2 <- stats::sd(w2)
 
-  # Handle cases where correlation is undefined
-  # stats::cor returns NA in these cases already, but adding a warning is helpful.
   if (is.na(sd1) || sd1 == 0 || is.na(sd2) || sd2 == 0) {
     warning("Zero variance in edge weights for at least one graph in the sampled union set. Correlation is undefined (NA).")
-    # Let stats::cor return NA
   }
 
-  rho <- stats::cor(merged_edges$w1, merged_edges$w2, method = "spearman", use = "complete.obs") # use="complete.obs" shouldn't be needed after NA fill
+  rho <- stats::cor(w1, w2, method = "spearman", use = "complete.obs")
 
   return(rho)
 }
