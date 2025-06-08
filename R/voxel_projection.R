@@ -13,7 +13,8 @@
 #'   original parcel-level eigenvalues. Values should be positive.
 #' @param n_nearest_parcels An integer, the number of nearest parcels (k_nn) to
 #'   consider for each voxel when constructing the affinity matrix *if* `W_vox_parc`
-#'   is not provided. Must be at least 1. Ignored if `W_vox_parc` is provided.
+#'   is not provided. Must be at least 1 and cannot exceed the number of parcels
+#'   (`nrow(parcel_coords)`). Ignored if `W_vox_parc` is provided.
 #' @param kernel_sigma A numeric scalar, the bandwidth (sigma) for the Gaussian kernel,
 #'   or the string \"auto\". Used only *if* `W_vox_parc` is not provided.
 #'   If \"auto\", sigma is estimated as
@@ -83,7 +84,13 @@ compute_voxel_basis_nystrom <- function(voxel_coords, parcel_coords,
 
   if (is.null(W_vox_parc)) {
     # 1. Find k_nn nearest parcel centroids for each voxel
-    if (n_nearest_parcels < 1) stop("`n_nearest_parcels` must be at least 1.")
+    if (n_nearest_parcels < 1) {
+      stop("`n_nearest_parcels` must be at least 1.")
+    }
+    if (n_nearest_parcels > V_p) {
+      stop(sprintf("`n_nearest_parcels` (%d) cannot exceed the number of parcels (%d).",
+                   n_nearest_parcels, V_p))
+    }
     nn_results <- RANN::nn2(data = parcel_coords, query = voxel_coords, k = n_nearest_parcels, treetype = "kd")
     
     # nn_results$nn.idx gives V_v x n_nearest_parcels matrix of parcel indices

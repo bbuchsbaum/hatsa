@@ -30,7 +30,8 @@ original parcel-level eigenvalues. Values should be positive.}
 
 \item{n_nearest_parcels}{An integer, the number of nearest parcels (k_nn) to
 consider for each voxel when constructing the affinity matrix *if* `W_vox_parc`
-is not provided. Must be at least 1. Ignored if `W_vox_parc` is provided.}
+is not provided. Must be at least 1 and not exceed the number of parcels
+(\code{nrow(parcel_coords)}). Ignored if \code{W_vox_parc} is provided.}
 
 \item{kernel_sigma}{A numeric scalar, the bandwidth (sigma) for the Gaussian kernel,
 or the string \"auto\". Used only *if* `W_vox_parc` is not provided.
