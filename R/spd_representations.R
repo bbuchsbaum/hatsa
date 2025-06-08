@@ -11,11 +11,14 @@ NULL
     stop(sprintf("Invalid subject_idx %d for N_subjects = %d", subject_idx, object$parameters$N_subjects))
   }
 
+  V_p <- object$parameters$V_p
+  k <- object$parameters$k
+
   # Prefer U_aligned_list if available and populated for this subject
   if (!is.null(object$U_aligned_list) && length(object$U_aligned_list) >= subject_idx) {
     sketch <- object$U_aligned_list[[subject_idx]]
     if (!is.null(sketch)) {
-      if (is.matrix(sketch) && ncol(sketch) == object$parameters$k && nrow(sketch) == object$parameters$V_p) {
+      if (is.matrix(sketch) && ncol(sketch) == k && nrow(sketch) == V_p) {
         return(sketch)
       } else {
         warning(sprintf("U_aligned_list[[%d]] is not a valid matrix. Falling back to object$s.", subject_idx))
@@ -29,11 +32,11 @@ NULL
       !is.null(object$block_indices[[subject_idx]])) {
     
     rows_subj_i <- object$block_indices[[subject_idx]]
-    if (length(rows_subj_i) == 0 && object$parameters$V_p > 0) { # Subject might have had no data
+    if (length(rows_subj_i) == 0 && V_p > 0) { # Subject might have had no data
         warning(sprintf("Subject %d has no rows in object$s (block_indices are empty). Returning NULL sketch.", subject_idx))
         return(NULL)
-    } else if (length(rows_subj_i) == 0 && object$parameters$V_p == 0) {
-        return(matrix(NA_real_, nrow=0, ncol=object$parameters$k)) # Consistent 0-row matrix if V_p = 0
+    } else if (length(rows_subj_i) == 0 && V_p == 0) {
+        return(matrix(NA_real_, nrow=0, ncol=k)) # Consistent 0-row matrix if V_p = 0
     }
     
     if (max(rows_subj_i) > nrow(object$s)) {
@@ -42,16 +45,16 @@ NULL
     }
 
     U_aligned_i_from_s <- object$s[rows_subj_i, , drop = FALSE]
-    
-    if (nrow(U_aligned_i_from_s) == object$parameters$V_p && ncol(U_aligned_i_from_s) == object$parameters$k) {
+
+    if (nrow(U_aligned_i_from_s) == V_p && ncol(U_aligned_i_from_s) == k) {
       if (any(is.na(U_aligned_i_from_s))) {
         warning(sprintf("Sketch for subject %d from object$s contains NAs.", subject_idx))
       }
       return(U_aligned_i_from_s)
     } else {
-      warning(sprintf("Sketch for subject %d from object$s has unexpected dimensions: %d x %d (expected %d x %d). Returning NULL.", 
-                      subject_idx, nrow(U_aligned_i_from_s), ncol(U_aligned_i_from_s), 
-                      object$parameters$V_p, object$parameters$k))
+      warning(sprintf("Sketch for subject %d from object$s has unexpected dimensions: %d x %d (expected %d x %d). Returning NULL.",
+                      subject_idx, nrow(U_aligned_i_from_s), ncol(U_aligned_i_from_s),
+                      V_p, k))
       return(NULL)
     }
   } else {
@@ -72,7 +75,7 @@ NULL
 #' @keywords internal
 .compute_cov_spectral_coeffs <- function(U_aligned_subject) {
   if (is.null(U_aligned_subject)) {
-    return(NULL) 
+    return(NULL)
   }
   if (!is.matrix(U_aligned_subject) || !is.numeric(U_aligned_subject)) {
     stop("U_aligned_subject must be a numeric matrix.")
@@ -87,6 +90,36 @@ NULL
     return(matrix(NA_real_, nrow = k, ncol = k))
   }
   return(stats::cov(U_aligned_subject))
+}
+
+#' Densify, symmetrize and regularize a connectivity matrix
+#'
+#' Helper used by `get_spd_representations()` to convert sparse connectivity
+#' matrices to dense form if needed, enforce symmetry, and apply SPD
+#' regularization.
+#'
+#' @param M A numeric matrix or `Matrix` object representing a connectivity matrix.
+#' @param epsilon Numeric scalar used for SPD regularization.
+#' @return A dense symmetric positive-definite matrix, or `NULL` if `M` is `NULL`.
+#' @keywords internal
+.densify_symmetrize_regularize <- function(M, epsilon) {
+  if (is.null(M)) return(NULL)
+
+  if (!Matrix::isSymmetric(M)) {
+    warning("Matrix was not symmetric. Symmetrizing via (M + t(M)) / 2.")
+    M <- (M + Matrix::t(M)) / 2
+  }
+
+  dense_M <- if (inherits(M, "sparseMatrix")) {
+    if (prod(dim(M)) > 1e6) {
+      warning("Coercing large sparse matrix to dense may be memory-intensive.")
+    }
+    as.matrix(M)
+  } else {
+    M
+  }
+
+  .regularize_spd(dense_M, epsilon)
 }
 
 
@@ -109,8 +142,9 @@ NULL
 #'   e.g., `list(k_conn_pos = 10, k_conn_neg = 10, zscore_type = "abs", ...)`.
 #'   Needed for `type = "fc_conn"`.
 #' @param ... Additional arguments, potentially passed to specific computation functions.
-#' @return A list of SPD matrices. Each element corresponds to a subject. Returns NULL
-#'   for a subject if its SPD matrix cannot be computed.
+#' @return If `subject_idx` has length 1, a single SPD matrix is returned.
+#'   Otherwise a list of matrices is returned with `NULL` for subjects whose SPD
+#'   representation could not be computed.
 #' @export
 get_spd_representations <- function(object, ...) {
   UseMethod("get_spd_representations")
@@ -195,16 +229,7 @@ get_spd_representations.hatsa_projector <- function(object,
       
       if (!is.null(W_conn_i_list) && !is.null(W_conn_i_list$W_sparse)) {
         W_conn_i <- W_conn_i_list$W_sparse
-        if (!Matrix::isSymmetric(W_conn_i)) {
-            warning(sprintf("W_conn_i for subject %d was not symmetric. Symmetrizing: (W+t(W))/2.", current_subj_orig_idx))
-            W_conn_i <- (W_conn_i + t(W_conn_i)) / 2
-        }
-        if (inherits(W_conn_i, "sparseMatrix")) {
-            W_conn_i_dense <- as.matrix(W_conn_i)
-             spd_matrix_i <- .regularize_spd(W_conn_i_dense, regularize_epsilon)
-        } else {
-             spd_matrix_i <- .regularize_spd(W_conn_i, regularize_epsilon)
-        }
+        spd_matrix_i <- .densify_symmetrize_regularize(W_conn_i, regularize_epsilon)
       } else {
         warning(sprintf("W_conn_i computation failed or returned NULL for subject %d.", current_subj_orig_idx))
       }
@@ -287,15 +312,9 @@ get_spd_representations.task_hatsa_projector <- function(object,
       }
 
       if (!is.null(W_matrix)) {
-        if (!Matrix::isSymmetric(W_matrix)) {
-            warning(sprintf("%s for subject %d was not symmetric. Symmetrizing: (W+t(W))/2.", type, current_subj_orig_idx))
-            W_matrix <- (W_matrix + t(W_matrix)) / 2
-        }
-        current_W_dense <- if (inherits(W_matrix, "sparseMatrix")) as.matrix(W_matrix) else W_matrix
-        if (is.matrix(current_W_dense) && all(dim(current_W_dense) > 0) && !all(is.na(current_W_dense))){
-            spd_matrix_i <- .regularize_spd(current_W_dense, regularize_epsilon)
-        } else {
-            warning(sprintf("%s for subject %d resulted in NULL, NA, or zero-dim matrix after densification.", type, current_subj_orig_idx))
+        spd_matrix_i <- .densify_symmetrize_regularize(W_matrix, regularize_epsilon)
+        if (is.null(spd_matrix_i)) {
+          warning(sprintf("%s for subject %d resulted in NULL after processing.", type, current_subj_orig_idx))
         }
       } else {
         warning(sprintf("Could not retrieve or compute %s matrix for subject %d.", type, current_subj_orig_idx))
