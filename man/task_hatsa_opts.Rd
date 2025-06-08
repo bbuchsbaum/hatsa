@@ -48,8 +48,9 @@ Defaults handled by `solve_procrustes_rotation_weighted`.}
 
 \item{omega_mode}{Character string: `"fixed"` or `"adaptive"`. Controls weighting in GPA. Default `"fixed"`.}
 
-\item{reliability_scores_list}{List (parallel to `subject_data_list`), each element a numeric
-vector of reliability scores (e.g., R^2) for task data (length `C`). Used if `omega_mode == "adaptive"`.}
+\item{reliability_scores_list}{Either \code{NULL} or a list with one entry per subject.
+Each entry should be a numeric vector of reliability scores for task data (length \code{C}) or \code{NULL}.
+Elements with differing lengths trigger warnings. Used when \code{omega_mode == "adaptive"}.}
 
 \item{scale_omega_trace}{Logical. Whether to rescale weights in weighted GPA so trace equals total anchors. Default `TRUE`.}
 

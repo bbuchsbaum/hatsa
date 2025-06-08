@@ -13,7 +13,9 @@
 #' @param residualize_condition_anchors Whether to residualize condition anchors
 #' @param omega_weights Fixed weights for omega_mode
 #' @param omega_mode Mode for omega calculation
-#' @param reliability_scores_list List of reliability scores for adaptive weighting
+#' @param reliability_scores_list Either `NULL` or a list with one entry per subject.
+#'   Each entry should be a numeric vector of reliability scores or `NULL`.
+#'   Elements with differing lengths will trigger warnings when validated.
 #' @param scale_omega_trace Whether to scale omega trace
 #' @param alpha_laplacian Alpha parameter for graph Laplacian
 #' @param degree_type_laplacian Degree type for graph Laplacian
@@ -73,6 +75,33 @@ validate_and_initialize_args <- function(
         stop("subject_data_list must be a non-empty list.")
     }
     N_subjects <- length(subject_data_list)
+
+    if (!is.null(reliability_scores_list)) {
+        if (!is.list(reliability_scores_list)) {
+            stop("reliability_scores_list must be a list or NULL.")
+        }
+        if (length(reliability_scores_list) != N_subjects) {
+            stop(sprintf(
+                "reliability_scores_list length (%d) must match N_subjects (%d).",
+                length(reliability_scores_list), N_subjects
+            ))
+        }
+
+        reli_lengths <- sapply(reliability_scores_list, function(x) {
+            if (is.null(x)) {
+                NA_integer_
+            } else {
+                if (!is.numeric(x)) {
+                    stop("Each element of reliability_scores_list must be a numeric vector or NULL.")
+                }
+                length(x)
+            }
+        })
+
+        if (length(unique(stats::na.omit(reli_lengths))) > 1) {
+            warning("reliability_scores_list elements have differing lengths.")
+        }
+    }
 
     first_valid_subj_idx <- which(sapply(subject_data_list, function(x) !is.null(x) && is.matrix(x) && ncol(x) > 0))[1]
     if (is.na(first_valid_subj_idx)) stop("No valid subject data found in subject_data_list.")

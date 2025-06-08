@@ -35,9 +35,10 @@ Default `"fixed"`. Ignored if `m_task_rows == 0`.}
 \item{fixed_omega_weights}{List, weights for `"fixed"` mode. Passed to weighted solver.
 Default `list(parcel = 1.0, condition = 0.5)` is handled by the weighted solver if NULL.}
 
-\item{reliability_scores_list}{List (parallel to `A_originals_list`), each element a
-numeric vector of reliability scores for task anchors. Used if `omega_mode == "adaptive"`
-and `m_task_rows > 0`. If `NULL`, adaptive mode in solver may use default behavior.}
+\item{reliability_scores_list}{Either \code{NULL} or a list with one entry per subject.
+Each entry should be a numeric vector of reliability scores for task anchors or \code{NULL}.
+Elements with differing lengths trigger warnings. Used when \code{omega_mode == "adaptive"}
+and \code{m_task_rows > 0}. If \code{NULL}, adaptive mode in the solver may use default behavior.}
 
 \item{scale_omega_trace}{Logical, passed to weighted solver. Default `TRUE`.}
 }

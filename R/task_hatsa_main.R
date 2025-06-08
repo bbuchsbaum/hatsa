@@ -25,8 +25,11 @@
 #'   `list(parcel = 1.0, condition = 0.5)`). Used if `row_augmentation=TRUE` and `omega_mode == "fixed"`.
 #'   Defaults handled by `solve_procrustes_rotation_weighted`.
 #' @param omega_mode Character string: `"fixed"` or `"adaptive"`. Controls weighting in GPA. Default `"fixed"`.
-#' @param reliability_scores_list List (parallel to `subject_data_list`), each element a numeric
-#'   vector of reliability scores (e.g., R^2) for task data (length `C`). Used if `omega_mode == "adaptive"`.
+#' @param reliability_scores_list Either `NULL` or a list with one entry per subject.
+#'   Each entry should be a numeric vector of reliability scores (e.g., R^2) for
+#'   task data (length `C`) or `NULL`.
+#'   Elements with differing lengths trigger warnings. Used when
+#'   `omega_mode == "adaptive"`.
 #' @param scale_omega_trace Logical. Whether to rescale weights in weighted GPA so trace equals total anchors. Default `TRUE`.
 #' @param alpha_laplacian Numeric, laziness parameter for graph Laplacians (`L = I - alpha D^{-1} W`). Default 0.93.
 #' @param degree_type_laplacian Character string (`"abs"`, `"positive"`, `"signed"`). Type of degree calculation for Laplacian. Default `"abs"`.
@@ -192,8 +195,10 @@ run_task_hatsa <- function(
 #'   `list(parcel = 1.0, condition = 0.5)`). Used if `row_augmentation=TRUE` and `omega_mode == "fixed"`.
 #'   Defaults handled by `solve_procrustes_rotation_weighted`.
 #' @param omega_mode Character string: `"fixed"` or `"adaptive"`. Controls weighting in GPA. Default `"fixed"`.
-#' @param reliability_scores_list List (parallel to `subject_data_list`), each element a numeric
-#'   vector of reliability scores (e.g., R^2) for task data (length `C`). Used if `omega_mode == "adaptive"`.
+#' @param reliability_scores_list Either `NULL` or a list with one entry per subject.
+#'   Each entry should be a numeric vector of reliability scores (e.g., R^2) for
+#'   task data (length `C`) or `NULL`. Elements with differing lengths trigger
+#'   warnings. Used when `omega_mode == "adaptive"`.
 #' @param scale_omega_trace Logical. Whether to rescale weights in weighted GPA so trace equals total anchors. Default `TRUE`.
 #' @param alpha_laplacian Numeric, laziness parameter for graph Laplacians (`L = I - alpha D^{-1} W`). Default 0.93.
 #' @param degree_type_laplacian Character string (`"abs"`, `"positive"`, `"signed"`). Type of degree calculation for Laplacian. Default `"abs"`.
