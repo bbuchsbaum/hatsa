@@ -75,13 +75,20 @@ solve_procrustes_rotation <- function(A_orig_subj_anchor, T_anchor_group) {
 #' @return List: `R_final_list` (list of `k x k` rotation matrices),
 #'         `T_anchor_final` (final `(m_parcels+m_tasks) x k` group anchor template).
 #' @keywords internal
-perform_gpa_refinement <- function(A_originals_list, n_refine, k, 
+perform_gpa_refinement <- function(A_originals_list, n_refine, k,
                                    m_parcel_rows = NULL, m_task_rows = 0,
-                                   omega_mode = "fixed", 
+                                   omega_mode = "fixed",
                                    fixed_omega_weights = NULL,
                                    reliability_scores_list = NULL,
                                    scale_omega_trace = TRUE) {
   num_subjects <- length(A_originals_list)
+
+  omega_mode <- match.arg(omega_mode, c("fixed", "adaptive"))
+
+  if (length(n_refine) != 1L || is.na(n_refine) || n_refine < 0 ||
+      n_refine %% 1 != 0) {
+    stop("n_refine must be a non-negative integer")
+  }
   
   if (is.null(m_parcel_rows)) {
     first_valid_A <- NULL
@@ -101,6 +108,13 @@ perform_gpa_refinement <- function(A_originals_list, n_refine, k,
   }
   
   m_total_rows <- m_parcel_rows + m_task_rows
+
+  dimension_check <- vapply(A_originals_list, function(A) {
+    is.null(A) || (is.matrix(A) && all(dim(A) == c(m_total_rows, k)))
+  }, logical(1))
+  if (any(!dimension_check)) {
+    stop("Each non-NULL element of A_originals_list must have dimensions (m_parcel_rows + m_task_rows) x k")
+  }
 
   if (k == 0) { 
       T_anchor <- matrix(0, nrow = m_total_rows, ncol = 0)
