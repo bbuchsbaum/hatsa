@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Package Overview
 
-HATSA (Hyperalignment via Task-informed Shared Analysis) is an R package for advanced functional connectivity alignment in neuroimaging data. The package is ~75% complete with 5 critical core functions missing.
+HATSA (Hyperalignment via Task-informed Shared Analysis) is an R package for advanced functional connectivity alignment in neuroimaging data. The package is ~95% complete with all core functions implemented.
 
 ## Development Commands
 
@@ -42,7 +42,7 @@ R -e "devtools::load_all()"
 2. **Task-HATSA** (`run_task_hatsa`): Extensions with lambda blending, GEV patches, anchor augmentation
 3. **Voxel Projection**: Nyström extension for mapping full voxel data to spectral space
 
-### Critical Missing Functions (Priority)
+### Core Functions (Implemented)
 Located in `R/spectral_graph_construction.R`:
 1. `compute_subject_connectivity_graph_sparse()` - Build sparse correlation graphs
 2. `compute_graph_laplacian_sparse()` - Compute normalized Laplacian
@@ -57,7 +57,7 @@ Located in `R/spectral_graph_construction.R`:
 ### Testing Structure
 - Framework: testthat v3
 - Test files mirror source structure
-- 400+ tests already written (including for missing functions)
+- 400+ tests already written (including for previously missing functions)
 - Snapshot tests use `_snaps/` directory
 
 ### Important Design Patterns
