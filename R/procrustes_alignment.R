@@ -45,8 +45,40 @@ solve_procrustes_rotation <- function(A_orig_subj_anchor, T_anchor_group) {
       return(diag(k_dim))
   }
 
+###<<<<<<< codex/create-procrustes_rotation_basic-helper
   R_i <- procrustes_rotation_basic(A_orig_subj_anchor, T_anchor_group)
 
+##=======
+  svd_M <- svd(M) 
+  U_svd <- svd_M$u
+  V_svd <- svd_M$v 
+  
+  R_raw <- V_svd %*% base::t(U_svd) 
+  
+  # Fast reflection fix using determinant sign from SVD
+  # sign(det(V) * det(U)) computes the sign of det(R_raw)
+  sign_det <- sign(det(svd_M$v) * det(svd_M$u))
+  
+  R_i <- R_raw
+  if (sign_det < 0) {
+      # Audit patch: Flip column corresponding to the *smallest* singular value
+      j_min_sv <- which.min(svd_M$d)
+      V_svd_corrected <- V_svd
+      V_svd_corrected[, j_min_sv] <- -V_svd_corrected[, j_min_sv]
+      R_i <- V_svd_corrected %*% base::t(U_svd)
+      
+      # Optional sanity check (can be removed in production)
+      # if (abs(det(R_i) - 1.0) > 1e-6) {
+      #   warning("Determinant correction failed?")
+      # }
+  }
+  
+  # The previous check for det != +/- 1 is removed as the determinant sign check is sufficient
+  # and handles the reflection properly. Issues with the matrix M itself
+  # (e.g. near singularity) might still lead to unstable rotations, but the 
+  # rotation matrix R_i returned will have det = +1.
+  
+###>>>>>>> main
   return(R_i)
 }
 
@@ -75,13 +107,20 @@ solve_procrustes_rotation <- function(A_orig_subj_anchor, T_anchor_group) {
 #' @return List: `R_final_list` (list of `k x k` rotation matrices),
 #'         `T_anchor_final` (final `(m_parcels+m_tasks) x k` group anchor template).
 #' @keywords internal
-perform_gpa_refinement <- function(A_originals_list, n_refine, k, 
+perform_gpa_refinement <- function(A_originals_list, n_refine, k,
                                    m_parcel_rows = NULL, m_task_rows = 0,
-                                   omega_mode = "fixed", 
+                                   omega_mode = "fixed",
                                    fixed_omega_weights = NULL,
                                    reliability_scores_list = NULL,
                                    scale_omega_trace = TRUE) {
   num_subjects <- length(A_originals_list)
+
+  omega_mode <- match.arg(omega_mode, c("fixed", "adaptive"))
+
+  if (length(n_refine) != 1L || is.na(n_refine) || n_refine < 0 ||
+      n_refine %% 1 != 0) {
+    stop("n_refine must be a non-negative integer")
+  }
   
   if (is.null(m_parcel_rows)) {
     first_valid_A <- NULL
@@ -101,6 +140,13 @@ perform_gpa_refinement <- function(A_originals_list, n_refine, k,
   }
   
   m_total_rows <- m_parcel_rows + m_task_rows
+
+  dimension_check <- vapply(A_originals_list, function(A) {
+    is.null(A) || (is.matrix(A) && all(dim(A) == c(m_total_rows, k)))
+  }, logical(1))
+  if (any(!dimension_check)) {
+    stop("Each non-NULL element of A_originals_list must have dimensions (m_parcel_rows + m_task_rows) x k")
+  }
 
   if (k == 0) { 
       T_anchor <- matrix(0, nrow = m_total_rows, ncol = 0)
