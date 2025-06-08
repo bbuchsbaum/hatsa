@@ -427,6 +427,7 @@ compute_task_matrices <- function(subject_idx, task_data_i, args, W_conn_i, L_co
     # Extract arguments
     verbose <- args$verbose
     parcel_names <- args$parcel_names
+    V_p <- length(parcel_names)
     k_conn_task_pos <- args$k_conn_task_pos
     k_conn_task_neg <- args$k_conn_task_neg
     similarity_method_task <- args$similarity_method_task
@@ -452,7 +453,17 @@ compute_task_matrices <- function(subject_idx, task_data_i, args, W_conn_i, L_co
     })
     
     if (is.null(W_task_i_raw)) return(result)
-    
+
+    if (!inherits(W_task_i_raw, "Matrix") || nrow(W_task_i_raw) != V_p || ncol(W_task_i_raw) != V_p) {
+        warning(sprintf("W_task_i_raw for subject %d is not a V_p x V_p Matrix::Matrix. Skipping task graph.", subject_idx))
+        return(result)
+    }
+
+    if (!Matrix::isSymmetric(W_task_i_raw, tol = 1e-8)) {
+        warning(sprintf("W_task_i_raw for subject %d was not symmetric. Forcing symmetry.", subject_idx))
+        W_task_i_raw <- Matrix::forceSymmetric(W_task_i_raw, uplo = "U")
+    }
+
     W_task_i <- W_task_i_raw # Start with raw
     
     # Redundancy Check
