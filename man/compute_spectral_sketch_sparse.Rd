@@ -4,13 +4,16 @@
 \alias{compute_spectral_sketch_sparse}
 \title{Compute spectral sketch `U_orig_i` using `RSpectra` or `base::eigen`}
 \usage{
-compute_spectral_sketch_sparse(L_conn_i_sparse, k)
+compute_spectral_sketch_sparse(L_conn_i_sparse, k, eigenvalue_tol = 1e-8)
 }
 \arguments{
 \item{L_conn_i_sparse}{A sparse graph Laplacian matrix (`Matrix::dgCMatrix`, `V_p x V_p`).
 Must be symmetric.}
 
 \item{k}{An integer, the desired spectral rank. Must be `k >= 0`.}
+
+\item{eigenvalue_tol}{Numeric floor used when dynamically determining the
+  tolerance for filtering near-zero eigenvalues. Defaults to \code{1e-8}.}
 }
 \value{
 A list containing two elements:

@@ -136,7 +136,7 @@ run_geo_hatsa_core <- function(subject_data_list,
       L_conn_i_sparse <- compute_graph_laplacian_sparse(W_conn_i_sparse)
       
       sketch_result <- tryCatch({
-          compute_spectral_sketch_sparse(L_conn_i_sparse, spectral_rank_k)
+          compute_spectral_sketch_sparse(L_conn_i_sparse, spectral_rank_k, eigenvalue_tol = 1e-8)
       }, error = function(e) {
           message(sprintf("  Geo-HATSA Stage 1: Error computing spectral sketch for subject %d: %s", i, e$message))
           qc_metrics$sketch_computed_ok[i] <- FALSE

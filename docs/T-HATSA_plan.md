@@ -64,20 +64,20 @@ The chosen name based on the discussion will be **task_hatsa (Task-Informed HATS
 3.  **Basis Shaping per Subject `i` (Based on `task_method`):**
     *   **If `task_method == "core_hatsa"`:**
         *   `L_i = compute_graph_laplacian_sparse(W_conn_i, alpha = alpha_laplacian)`.
-        *   `sketch = compute_spectral_sketch_sparse(L_i, spectral_rank_k)`.
+        *   `sketch = compute_spectral_sketch_sparse(L_i, spectral_rank_k, eigenvalue_tol = 1e-8)`.
         *   `U_original_list[[i]] = sketch$vectors`. `Lambda_original_list[[i]] = sketch$values`. `U_patch_list[[i]] = NULL`.
     *   **If `task_method == "lambda_blend"`:**
         *   `L_conn_i = compute_graph_laplacian_sparse(W_conn_i, alpha = alpha_laplacian)`.
         *   `L_task_i = compute_graph_laplacian_sparse(W_task_i, alpha = alpha_laplacian)` (using potentially residualized `W_task_i`).
         *   `L_hybrid_i = (1-lambda_blend_value)*L_conn_i + lambda_blend_value*L_task_i`.
         *   Check `eigengap_ratio_k` of `L_hybrid_i` (diagnostic, cf. threshold **~1.3-1.4**, possibly SNR dependent).
-        *   `sketch = compute_spectral_sketch_sparse(L_hybrid_i, spectral_rank_k)`.
+        *   `sketch = compute_spectral_sketch_sparse(L_hybrid_i, spectral_rank_k, eigenvalue_tol = 1e-8)`.
         *   `U_original_list[[i]] = sketch$vectors`. `Lambda_original_list[[i]] = sketch$values`. `U_patch_list[[i]] = NULL`.
     *   **If `task_method == "gev_patch"`:**
         *   `L_conn_i = compute_graph_laplacian_sparse(W_conn_i, alpha = alpha_laplacian)`.
         *   `L_task_i = compute_graph_laplacian_sparse(W_task_i, alpha = alpha_laplacian)` (using potentially residualized `W_task_i`).
         *   `gev_results = solve_gev_laplacian_primme(L_task_i, L_conn_i, k_request = k_gev_dims*2, lambda_max_thresh = gev_lambda_max, stability_r_thresh = gev_stability_r_min, epsilon_reg_L_conn = gev_epsilon_reg)`. Filter eigenvectors based on `lambda` and stability `r`. Store `U_patch_taskGEV_i` (actual `k_gev_dims` passing filters) and `Lambda_GEV_i`.
-        *   Compute core sketch: `core_sketch = compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k)`.
+        *   Compute core sketch: `core_sketch = compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k, eigenvalue_tol = 1e-8)`.
         *   `U_original_list[[i]] = core_sketch$vectors`. `Lambda_original_list[[i]] = core_sketch$values`.
         *   Store `U_patch_taskGEV_i`, `Lambda_GEV_i`, and GEV diagnostics separately.
 

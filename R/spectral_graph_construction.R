@@ -282,16 +282,19 @@ compute_graph_laplacian_sparse <- function(W_sparse, alpha = 0.93, degree_type =
 #' @param L_conn_i_sparse A sparse graph Laplacian matrix (`Matrix::dgCMatrix`, `V_p x V_p`).
 #'   Must be symmetric.
 #' @param k An integer, the desired spectral rank. Must be `k >= 0`.
+#' @param eigenvalue_tol Numeric floor used when dynamically determining the
+#'   tolerance for filtering near-zero eigenvalues. Defaults to `1e-8`.
 #' @return A list containing two elements:
 #'   - `vectors`: A dense matrix `U_orig_i` (`V_p x k_actual`) of eigenvectors.
 #'     `k_actual` may be less than `k` if not enough informative eigenvectors are found.
 #'   - `values`: A vector of eigenvalues corresponding to the eigenvectors.
 #' @importFrom PRIMME eigs_sym
 #' @keywords internal
-compute_spectral_sketch_sparse <- function(L_conn_i_sparse, k) {
+compute_spectral_sketch_sparse <- function(L_conn_i_sparse, k,
+                                           eigenvalue_tol = 1e-8) {
   V_p <- nrow(L_conn_i_sparse)
-  # Default eigenvalue_tol, will be updated dynamically later if possible
-  eigenvalue_tol_floor <- 1e-8 
+  # Use provided eigenvalue_tol as the floor for dynamic adjustment
+  eigenvalue_tol_floor <- eigenvalue_tol
 
   if (k < 0) stop("`spectral_rank_k` (k) must be non-negative.")
   if (V_p == 0) return(list(vectors = matrix(0, 0, k), values = numeric(0)))
