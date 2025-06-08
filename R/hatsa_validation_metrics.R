@@ -44,7 +44,7 @@ compute_v_recovery <- function(hatsa_object, U_true, ...) {
   v_estimated <- hatsa_object$v
 
   # Align estimated v to U_true
-  procr_fit <- vegan::procrustes(X = v_estimated, Y = U_true, symmetric = FALSE, ...)
+  procr_fit <- vegan::procrustes(X = U_true, Y = v_estimated, symmetric = FALSE, ...)
   v_aligned <- procr_fit$Yrot
 
   # Metrics
@@ -113,7 +113,7 @@ compute_anchor_template_recovery <- function(hatsa_object, U_true, anchor_indice
   }
 
   # Align estimated T_anchor_final to U_true_anchors
-  procr_fit <- vegan::procrustes(X = T_anchor_estimated, Y = U_true_anchors, symmetric = FALSE, ...)
+  procr_fit <- vegan::procrustes(X = U_true_anchors, Y = T_anchor_estimated, symmetric = FALSE, ...)
   T_anchor_aligned <- procr_fit$Yrot
 
   # Metrics
