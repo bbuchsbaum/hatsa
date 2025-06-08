@@ -7,9 +7,9 @@
 #'   of conditions/features and `V_p` is the number of parcels. Each column
 #'   represents the activation profile for a parcel.
 #' @param parcel_names A character vector of length `V_p` specifying parcel names.
-#' @param k_conn_task_pos Integer, number of strongest positive connections to
+#' @param k_conn_task_pos Non-negative integer. Number of strongest positive connections to
 #'   retain per parcel during sparsification.
-#' @param k_conn_task_neg Integer, number of strongest negative connections to
+#' @param k_conn_task_neg Non-negative integer. Number of strongest negative connections to
 #'   retain per parcel during sparsification.
 #' @param similarity_method Character string or function. Specifies the method to
 #'   compute the initial `V_p x V_p` similarity matrix from `activation_matrix`.
@@ -34,6 +34,15 @@ compute_W_task_from_activations <- function(activation_matrix,
 
   V_p <- ncol(activation_matrix)
   C_n <- if (is.matrix(activation_matrix)) nrow(activation_matrix) else 0 # Number of conditions/rows
+
+  if (!is.numeric(k_conn_task_pos) || length(k_conn_task_pos) != 1 ||
+      k_conn_task_pos < 0 || k_conn_task_pos != round(k_conn_task_pos)) {
+    stop("`k_conn_task_pos` must be a non-negative integer.")
+  }
+  if (!is.numeric(k_conn_task_neg) || length(k_conn_task_neg) != 1 ||
+      k_conn_task_neg < 0 || k_conn_task_neg != round(k_conn_task_neg)) {
+    stop("`k_conn_task_neg` must be a non-negative integer.")
+  }
 
   if (V_p == 0) {
     # Ensure consistent return type (dgCMatrix) for empty graph
@@ -185,9 +194,9 @@ compute_W_task_from_activations <- function(activation_matrix,
 #'   is the number of parcels and `N_features` is the number of encoding features.
 #'   Each row represents the encoding weight profile for a parcel.
 #' @param parcel_names A character vector of length `V_p` specifying parcel names.
-#' @param k_conn_task_pos Integer, number of strongest positive connections to
+#' @param k_conn_task_pos Non-negative integer. Number of strongest positive connections to
 #'   retain per parcel during sparsification.
-#' @param k_conn_task_neg Integer, number of strongest negative connections to
+#' @param k_conn_task_neg Non-negative integer. Number of strongest negative connections to
 #'   retain per parcel during sparsification.
 #' @param similarity_method Character string or function. Specifies the method to
 #'   compute the initial `V_p x V_p` similarity matrix.
@@ -210,6 +219,15 @@ compute_W_task_from_encoding <- function(encoding_weights_matrix,
 
   V_p <- nrow(encoding_weights_matrix) # Parcels are rows
   N_features <- ncol(encoding_weights_matrix)
+
+  if (!is.numeric(k_conn_task_pos) || length(k_conn_task_pos) != 1 ||
+      k_conn_task_pos < 0 || k_conn_task_pos != round(k_conn_task_pos)) {
+    stop("`k_conn_task_pos` must be a non-negative integer.")
+  }
+  if (!is.numeric(k_conn_task_neg) || length(k_conn_task_neg) != 1 ||
+      k_conn_task_neg < 0 || k_conn_task_neg != round(k_conn_task_neg)) {
+    stop("`k_conn_task_neg` must be a non-negative integer.")
+  }
 
   if (V_p == 0) {
     # Ensure consistent return type (dgCMatrix) for empty graph
