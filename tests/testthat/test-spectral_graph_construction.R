@@ -196,6 +196,7 @@ test_that("TCK-SGC-003: compute_subject_connectivity_graph_sparse handles zero v
   # Assertions on output_W (obtained from the first call)
   expect_s4_class(output_W, "dgCMatrix")
   expect_equal(dim(output_W), c(V_p, V_p))
+  expect_true(Matrix::isSymmetric(output_W))
 
   # Check that row 3 and column 3 are all zeros
   expect_equal(nnzero(output_W[3, ]), 0) # Check row 3 non-zeros

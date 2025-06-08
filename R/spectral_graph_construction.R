@@ -199,15 +199,8 @@ compute_subject_connectivity_graph_sparse <- function(X_subject, parcel_names,
   
   # Ensure zero-variance parcels have zero connections
   if (length(zero_var_indices) > 0) {
-      for (zero_idx in zero_var_indices) {
-        # Create zero slices since we know these should be all zeros
-        zero_row <- Matrix::Matrix(0, nrow=1, ncol=V_p, sparse=TRUE)
-        zero_col <- Matrix::Matrix(0, nrow=V_p, ncol=1, sparse=TRUE)
-        
-        # Replace entire rows/columns for zero-variance indices
-        W_symmetric[zero_idx, ] <- zero_row
-        W_symmetric[, zero_idx] <- zero_col
-      }
+      W_symmetric[zero_var_indices, ] <- 0
+      W_symmetric[, zero_var_indices] <- 0
       W_symmetric <- Matrix::drop0(W_symmetric)
   }
 
