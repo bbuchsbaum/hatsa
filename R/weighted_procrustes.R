@@ -20,6 +20,10 @@
 #' @param scale_omega_trace Logical, whether to rescale the diagonal `Omega` matrix
 #'   so that `sum(diag(Omega)) == N`. Default `TRUE`.
 #'
+#' @details Internally computes the weighted cross-product using
+#'   `crossprod(A_source, T_target * omega_diag_vector)` to avoid creating
+#'   separate weighted matrices for `A_source` and `T_target`.
+#'
 #' @return A `k x k` rotation matrix `R`.
 #'
 #' @importFrom Matrix Diagonal
@@ -153,19 +157,16 @@ solve_procrustes_rotation_weighted <- function(A_source, T_target,
       }
   }
   
-  # Get square root for scaling rows (correct implementation for weighted Procrustes)
-  sqrt_omega <- sqrt(pmax(0, omega_diag_vector)) # pmax guards against tiny negatives
-
-  # --- Apply weights efficiently using sweep (Fix 2-A, 2-B) ---
-  A_w <- sweep(A_source, 1, sqrt_omega, "*")
-  T_w <- sweep(T_target, 1, sqrt_omega, "*")
+  # --- Weighted cross-product without duplicating A_source ---
+  # Compute t(A_source) %*% diag(omega) %*% T_target by scaling T_target rows
+  # directly. This avoids creating intermediate weighted copies of both matrices.
 
   # --- Solve Standard Procrustes using SVD (Patch logic Fix 2-C) ---
   if (k_dims == 0) {
     return(matrix(0,0,0))
   }
 
-  M <- crossprod(A_w, T_w) # k_dims x k_dims matrix
+  M <- crossprod(A_source, T_target * omega_diag_vector) # k_dims x k_dims matrix
   
   if (all(abs(M) < 1e-14)) {
       warning("Cross-product matrix M (weighted) is near zero; rotation is ill-defined. Returning identity.")
