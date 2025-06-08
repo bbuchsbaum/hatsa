@@ -1,3 +1,30 @@
+#' Basic SVD-based Procrustes rotation solver
+#'
+#' Computes the cross-product `t(A) %*% T`, performs SVD and applies the
+#' standard determinant correction so that the returned rotation lies in
+#' `SO(k)`.
+#'
+#' @param A Numeric matrix.
+#' @param T Numeric matrix of the same dimensions as `A`.
+#' @return Rotation matrix with `det(R) = 1`.
+#' @keywords internal
+procrustes_rotation_basic <- function(A, T) {
+  M <- crossprod(A, T)
+  sv <- svd(M)
+  U <- sv$u
+  V <- sv$v
+  R_raw <- V %*% t(U)
+  sign_det <- sign(prod(diag(qr(R_raw)$qr)))
+  R <- R_raw
+  if (sign_det < 0) {
+    j_min <- which.min(sv$d)
+    V_corr <- V
+    V_corr[, j_min] <- -V_corr[, j_min]
+    R <- V_corr %*% t(U)
+  }
+  R
+}
+
 #' Solve Orthogonal Procrustes Problem for `R_i` in SO(k)
 #'
 #' Finds `R_i in SO(k)` that best aligns `A_orig_subj_anchor` to `T_anchor_group`.
@@ -11,13 +38,17 @@ solve_procrustes_rotation <- function(A_orig_subj_anchor, T_anchor_group) {
   k_dim <- ncol(A_orig_subj_anchor) 
   if (k_dim == 0) return(matrix(0,0,0)) 
 
-  M <- crossprod(A_orig_subj_anchor, T_anchor_group) 
-  
+  M <- crossprod(A_orig_subj_anchor, T_anchor_group)
+
   if (all(abs(M) < 1e-14)) {
       warning("Cross-product matrix M in solve_procrustes_rotation is near zero; rotation is ill-defined. Returning identity.")
       return(diag(k_dim))
   }
 
+###<<<<<<< codex/create-procrustes_rotation_basic-helper
+  R_i <- procrustes_rotation_basic(A_orig_subj_anchor, T_anchor_group)
+
+##=======
   svd_M <- svd(M) 
   U_svd <- svd_M$u
   V_svd <- svd_M$v 
@@ -47,6 +78,7 @@ solve_procrustes_rotation <- function(A_orig_subj_anchor, T_anchor_group) {
   # (e.g. near singularity) might still lead to unstable rotations, but the 
   # rotation matrix R_i returned will have det = +1.
   
+###>>>>>>> main
   return(R_i)
 }
 
@@ -249,7 +281,7 @@ perform_gpa_refinement <- function(A_originals_list, n_refine, k,
 #'   - `R_final_list`: List of final subject-specific rotation matrices (k x k).
 #'   - `T_anchor_final`: The final group anchor template matrix (m_rows x k).
 #'   - `R_bar_final`: The Fréchet mean of the final `R_final_list`.
-#' @importFrom stats svd det
+#' @importFrom stats svd
 #' @keywords internal
 perform_geometric_gpa_refinement <- function(A_originals_list,
                                              n_refine = 10,
@@ -279,14 +311,7 @@ perform_geometric_gpa_refinement <- function(A_originals_list,
   # Ensure initial R_list contains SO(k) matrices
   for(i in 1:N){
     if (!is.null(R_list[[i]]) && all(dim(R_list[[i]]) == c(k,k))) {
-        svd_R <- svd(R_list[[i]])
-        R_proj <- svd_R$u %*% t(svd_R$v)
-        if (det(R_proj) < 0) {
-            V_prime <- svd_R$v
-            V_prime[,k] <- -V_prime[,k]
-            R_proj <- svd_R$u %*% t(V_prime)
-        }
-        R_list[[i]] <- R_proj
+        R_list[[i]] <- procrustes_rotation_basic(R_list[[i]], diag(k))
     } else {
         R_list[[i]] <- diag(k) # Fallback if invalid initial matrix
     }
@@ -317,17 +342,7 @@ perform_geometric_gpa_refinement <- function(A_originals_list,
         R_list[[i]] <- diag(k) # Keep as identity or previous if A_i is problematic
         next
       }
-      M <- crossprod(Ai, T_template) # t(Ai) %*% T_template (k x k matrix)
-      svd_M <- svd(M)
-      R_new_i <- svd_M$u %*% t(svd_M$v)
-      
-      # Ensure R_new_i is in SO(k) (det(R) = 1)
-      if (det(R_new_i) < 0) {
-        V_prime <- svd_M$v
-        V_prime[,k] <- -V_prime[,k] # Flip the sign of the last column of V
-        R_new_i <- svd_M$u %*% t(V_prime)
-      }
-      R_list[[i]] <- R_new_i
+      R_list[[i]] <- procrustes_rotation_basic(Ai, T_template)
     }
 
     # --- 2. Update T_template --- 
