@@ -179,8 +179,8 @@ The chosen name based on the discussion will be **task_hatsa (Task-Informed HATS
     *   Internals:
         *   If `omega_mode == "fixed"`: Construct diagonal weight matrix `Omega`. Default to parcel=1.0, condition=0.5 if `omega_weights` is `NULL` or unspecified for these. Rescale `Omega` so `trace(Omega)` equals number of rows in `A_source`.
         *   If `omega_mode == "adaptive"`: Calculate condition weights based on `reliability_scores`. Parcel weights typically remain fixed (e.g., 1.0). Construct `Omega` and rescale trace. (Detailed logic for adaptive calculation needs to be specified, possibly based on `R^2_p` values).
-        *   Apply weights: `A_w = Omega %*% A_source`, `T_w = Omega %*% T_target`.
-        *   Call `solve_procrustes_rotation(A_w, T_w)`.
+        *   Compute weighted cross-product directly: `M <- crossprod(A_source, T_target * omega_diag_vector)`.
+        *   Call `solve_procrustes_rotation(M)` or SVD-based solution on `M`.
     *   Output: Rotation matrix `R`.
 *   `[X]` **TCK-AUGALI-004:** Modify `perform_gpa_refinement` function (in `R/procrustes_alignment.R`).
     *   Add optional parameters `omega_weights`, `omega_mode`, `reliability_scores_for_adaptive_omega`.
@@ -204,7 +204,7 @@ The chosen name based on the discussion will be **task_hatsa (Task-Informed HATS
 
 **Module: Testing (task_hatsa Specific)**
 *   `[ ]` **TCK-TSKTST-001:** Test `compute_W_task_from_activations` and `compute_W_task_from_encoding` (incl. similarity methods).
-*   `[ ]` **TCK-TSKTST-002:** Test `compute_graph_correlation` (union/zero-fill Spearman).
+*   `[X]` **TCK-TSKTST-002:** Test `compute_graph_correlation` (union/zero-fill Spearman).
 *   `[ ]` **TCK-TSKTST-004:** Test `residualize_graph_on_subspace` (low-rank formula, re-sparsify, re-z-score).
 *   `[ ]` **TCK-TSKTST-005:** Test `project_features_to_spectral_space` (orthogonal projection logic).
 *   `[ ]` **TCK-TSKTST-005.5 (NEW):** Test `residualize_matrix_on_subspace`.

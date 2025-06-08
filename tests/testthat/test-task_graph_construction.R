@@ -155,7 +155,29 @@ describe("compute_W_task_from_activations", {
     )
     expect_s4_class(W_task_c1, "dgCMatrix")
     expect_equal(dim(W_task_c1), c(V_p,V_p))
-    expect_equal(length(W_task_c1@x), 0) 
+    expect_equal(length(W_task_c1@x), 0)
+  })
+
+  it("errors for invalid k_conn_task_pos or k_conn_task_neg", {
+    activation_matrix <- matrix(rnorm(C * V_p), nrow = C, ncol = V_p)
+    expect_error(
+      compute_W_task_from_activations(
+        activation_matrix = activation_matrix,
+        parcel_names = parcel_names,
+        k_conn_task_pos = -1,
+        k_conn_task_neg = 1
+      ),
+      "k_conn_task_pos"
+    )
+    expect_error(
+      compute_W_task_from_activations(
+        activation_matrix = activation_matrix,
+        parcel_names = parcel_names,
+        k_conn_task_pos = 1,
+        k_conn_task_neg = -1
+      ),
+      "k_conn_task_neg"
+    )
   })
 
 }) # end describe compute_W_task_from_activations
@@ -288,6 +310,29 @@ describe("compute_W_task_from_encoding", {
     expect_s4_class(W_task, "dgCMatrix")
     expect_equal(dim(W_task), c(V_p,V_p))
     expect_equal(length(W_task@x), 0) # Graph should be empty
+  })
+
+  it("errors for invalid k_conn_task_pos or k_conn_task_neg for encoding", {
+    encoding_matrix <- matrix(rnorm(V_p * N_features), nrow = V_p, ncol = N_features)
+    rownames(encoding_matrix) <- parcel_names
+    expect_error(
+      compute_W_task_from_encoding(
+        encoding_weights_matrix = encoding_matrix,
+        parcel_names = parcel_names,
+        k_conn_task_pos = -1,
+        k_conn_task_neg = 1
+      ),
+      "k_conn_task_pos"
+    )
+    expect_error(
+      compute_W_task_from_encoding(
+        encoding_weights_matrix = encoding_matrix,
+        parcel_names = parcel_names,
+        k_conn_task_pos = 1,
+        k_conn_task_neg = -1
+      ),
+      "k_conn_task_neg"
+    )
   })
 
 }) # end describe compute_W_task_from_encoding 
