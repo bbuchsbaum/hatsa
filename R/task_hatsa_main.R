@@ -290,8 +290,6 @@ task_hatsa_opts <- function(
 #'   processing. Default is NULL.
 #' @param task_method Character string: `"lambda_blend"`, `"gev_patch"`, or `"core_hatsa"`. 
 #'   Default: `"lambda_blend"`.
-#' @param graph_mode Character string: `"schur_complement"`, `"anchor_block"`, or `"full_graph"`.
-#'   Determines which graph construction approach to use. Default: `"schur_complement"`.
 #' @param opts List of advanced options created by `task_hatsa_opts()`.
 #' @param verbose Logical. Print progress messages? Default `TRUE`.
 #' @param ... Additional arguments passed to `task_hatsa_opts()` if not provided directly via `opts`.
@@ -306,13 +304,11 @@ task_hatsa <- function(
     spectral_rank_k = 40,
     task_data_list = NULL,
     task_method = c("lambda_blend", "gev_patch", "core_hatsa"),
-    graph_mode = c("schur_complement", "anchor_block", "full_graph"),
     opts = task_hatsa_opts(),
     verbose = TRUE,
     ...
 ) {
     task_method <- match.arg(task_method)
-    graph_mode <- match.arg(graph_mode)
     
     # Handle additional options passed via ...
     if (...length() > 0) {
