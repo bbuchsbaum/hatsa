@@ -32,7 +32,7 @@
 #'   filtering based on split-half reliability (`r_split`) needs to be applied
 #'   separately. Eigenvectors are B-orthogonal.
 #'
-#' @importFrom Matrix Diagonal t
+#' @importFrom Matrix Diagonal t isSymmetric
 #' @importFrom PRIMME eigs_sym
 #' @importFrom methods is
 #' @keywords internal
@@ -54,6 +54,16 @@ solve_gev_laplacian_primme <- function(A, B, k_request,
   if (V_p == 0) return(list(vectors=matrix(0,0,0), values=numeric(0), n_converged=0, n_filtered=0, primme_stats=list()))
   if (nrow(B) != V_p || ncol(A) != V_p || ncol(B) != V_p) {
     stop("Input matrices A and B must be square and of the same dimension.")
+  }
+
+  if (!Matrix::isSymmetric(A)) {
+    stop("Input matrix A must be symmetric.")
+  }
+  if (!Matrix::isSymmetric(B)) {
+    stop("Input matrix B must be symmetric.")
+  }
+  if (any(diag(B) < 0)) {
+    warning("Input matrix B has negative diagonal entries and may not be positive semi-definite.")
   }
 
   # Ensure k is valid
