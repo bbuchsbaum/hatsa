@@ -352,7 +352,6 @@ process_single_subject <- function(subject_idx, subj_data_i, task_data_i, args) 
     parcel_names <- args$parcel_names
     k_conn_pos <- args$k_conn_pos
     k_conn_neg <- args$k_conn_neg
-    spectral_rank_k <- args$spectral_rank_k # Used in shape_basis
     task_method <- args$task_method # Used in shape_basis and here
     
     # Basic validation of subject data
