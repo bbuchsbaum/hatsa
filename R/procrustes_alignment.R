@@ -190,7 +190,7 @@ perform_gpa_refinement <- function(A_originals_list, n_refine, k,
         T_anchor <- rotated_anchors_sum_for_update / active_subjects_count_for_update
     } else if (m_total_rows > 0 || k > 0) { 
         T_anchor <- matrix(0, nrow = m_total_rows, ncol = k) 
-        warning("No valid subjects contributed to GPA template update in iteration %d. Template reset to zeros.", iter_num)
+        warning(sprintf("No valid subjects contributed to GPA template update in iteration %d. Template reset to zeros.", iter_num))
     }
   }
   
@@ -404,6 +404,3 @@ perform_geometric_gpa_refinement <- function(A_originals_list,
               T_anchor_final = T_template, 
               R_bar_final = R_bar_final))
 }
-
-# Helper for Frechet mean options default (borrowed from purrr::`%||%`)
-`%||%` <- function(x, y) if (is.null(x)) y else x

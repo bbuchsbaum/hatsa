@@ -25,6 +25,7 @@ Residualizes the rows of `matrix_to_residualize` with respect to
   each column of `t(matrix_to_residualize)` onto the column space of
   `t(subspace_basis_matrix)` and taking the residuals. Sparse inputs are
   handled with \code{Matrix} routines and the returned matrix is dense.
+
 }
 \examples{
 # Z_i: 3 conditions, 5-dimensional spectral space (3x5)

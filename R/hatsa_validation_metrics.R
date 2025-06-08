@@ -44,7 +44,7 @@ compute_v_recovery <- function(hatsa_object, U_true, ...) {
   v_estimated <- hatsa_object$v
 
   # Align estimated v to U_true
-  procr_fit <- vegan::procrustes(X = v_estimated, Y = U_true, symmetric = FALSE, ...)
+  procr_fit <- vegan::procrustes(X = U_true, Y = v_estimated, symmetric = FALSE, ...)
   v_aligned <- procr_fit$Yrot
 
   # Metrics
@@ -113,7 +113,7 @@ compute_anchor_template_recovery <- function(hatsa_object, U_true, anchor_indice
   }
 
   # Align estimated T_anchor_final to U_true_anchors
-  procr_fit <- vegan::procrustes(X = T_anchor_estimated, Y = U_true_anchors, symmetric = FALSE, ...)
+  procr_fit <- vegan::procrustes(X = U_true_anchors, Y = T_anchor_estimated, symmetric = FALSE, ...)
   T_anchor_aligned <- procr_fit$Yrot
 
   # Metrics
@@ -313,7 +313,11 @@ compute_eigenvalue_fidelity <- function(hatsa_object, true_eigenvalues_list, k_t
     
     # Avoid correlation with zero variance vectors
     cor_val <- NA_real_
-    if (stats::var(est_lambdas_comp) > 1e-9 && stats::var(true_lambdas_comp) > 1e-9) {
+    var_est <- stats::var(est_lambdas_comp)
+    var_true <- stats::var(true_lambdas_comp)
+    if (is.na(var_est)) var_est <- 0
+    if (is.na(var_true)) var_true <- 0
+    if (var_est > 1e-9 && var_true > 1e-9) {
         cor_val <- tryCatch(stats::cor(est_lambdas_comp, true_lambdas_comp),
                               error = function(e) NA_real_)
     } else if (identical(est_lambdas_comp, true_lambdas_comp)) {

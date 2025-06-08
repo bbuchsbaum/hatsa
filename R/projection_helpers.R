@@ -254,19 +254,33 @@ residualize_matrix_on_subspace <- function(matrix_to_residualize, subspace_basis
     return(matrix(0, nrow = 0, ncol = k_dim_Y))
   }
 
+  if (k_dim_Y > C_dim_Y) {
+    # Avoid transposing potentially very wide matrices by operating on columns.
+    XtX <- subspace_basis_matrix %*% t(subspace_basis_matrix)
+    XtX_inv <- tryCatch(solve(XtX), error = function(e) {
+      warning("solve(X %*% t(X)) failed, using pseudo-inverse. Projection may be less stable.")
+      if (!requireNamespace("MASS", quietly = TRUE)) stop("MASS package needed for ginv fallback.")
+      MASS::ginv(XtX)
+    })
+
+    projection <- (matrix_to_residualize %*% t(subspace_basis_matrix)) %*% XtX_inv %*% subspace_basis_matrix
+    return(matrix_to_residualize - projection)
+  }
+
   Y_eff <- t(matrix_to_residualize)
-  X_eff <- t(subspace_basis_matrix) 
-  
+  X_eff <- t(subspace_basis_matrix)
+
   # Audit suggestion: NA/Inf check
   if (any(!is.finite(X_eff))) stop("subspace_basis_matrix (after transpose) contains non-finite values.")
   if (any(!is.finite(Y_eff))) stop("matrix_to_residualize (after transpose) contains non-finite values.")
+
   
   qr_X_eff <- Matrix::qr(X_eff)
   
   if (qr_X_eff$rank == 0) {
-      return(matrix_to_residualize) 
+      return(matrix_to_residualize)
   }
-  
+
   if (qr_X_eff$rank < ncol(X_eff)) {
       warning(sprintf("subspace_basis_matrix (after transpose, %d x %d) appears rank deficient (rank %d < %d columns). Projection is onto a lower-dimensional subspace.",
               nrow(X_eff), ncol(X_eff), qr_X_eff$rank, ncol(X_eff)))
@@ -274,6 +288,7 @@ residualize_matrix_on_subspace <- function(matrix_to_residualize, subspace_basis
   
   # TODO: Consider orientation switch for big k_dim_Y > C_dim_Y if performance critical
   residuals_eff <- Matrix::qr.resid(qr_X_eff, Y_eff)
+
 
   return(as.matrix(t(residuals_eff)))
 }

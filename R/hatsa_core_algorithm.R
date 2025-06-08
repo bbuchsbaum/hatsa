@@ -2,7 +2,7 @@
 #'
 #' Implements the Core HATSA algorithm to align functional connectivity patterns
 #' across subjects. This version uses sparse matrices for graph representations,
-#' efficient eigendecomposition via `RSpectra`, and incorporates robustness
+#' efficient eigendecomposition via `PRIMME`, and incorporates robustness
 #' improvements based on detailed audits.
 #'
 #' @param subject_data_list A list of dense numeric matrices. Each matrix `X_i`
@@ -18,6 +18,9 @@
 #' @param n_refine An integer, number of GPA refinement iterations.
 #' @param use_dtw Logical, defaults to `FALSE`. If `TRUE` (not yet fully implemented),
 #'   Dynamic Time Warping would be considered in graph construction similarity.
+#' @param n_cores Integer number of CPU cores to use. If `> 1` and the platform
+#'   supports forking (i.e., non-Windows), per-subject computations are
+#'   parallelized via \code{parallel::mclapply}. Defaults to 1 (sequential).
 #'
 #' @return A `hatsa_projector` object. This S3 object inherits from
 #'   `multiblock_biprojector` (from the `multivarious` package) and contains
@@ -68,10 +71,10 @@
 #' k_neg <- 2
 #' n_iter_refine <- 2
 #'
-#' # Run Core HATSA (requires Matrix and RSpectra packages)
+#' # Run Core HATSA (requires Matrix and PRIMME packages)
 #' hatsa_results <- NULL
 #' if (requireNamespace("Matrix", quietly = TRUE) &&
-#'     requireNamespace("RSpectra", quietly = TRUE)) {
+#'     requireNamespace("PRIMME", quietly = TRUE)) {
 #'   hatsa_results <- tryCatch(
 #'     run_hatsa_core(
 #'       subject_data_list = subject_data,
@@ -107,7 +110,7 @@
 #'     # print(dim(subject1_scores)) # Should be V_p x k
 #'   }
 #' } else {
-#'   if (interactive()) message("Matrix and RSpectra packages needed for this example.")
+#'   if (interactive()) message("Matrix and PRIMME packages needed for this example.")
 #' }
 #'
 #' @seealso \code{\link{hatsa_projector}}, \code{\link{project_voxels.hatsa_projector}}
@@ -115,8 +118,10 @@
 #' @export
 #' @importFrom stats setNames rnorm runif sd
 #' @importFrom multivarious pass prep
+#' @importFrom parallel mclapply detectCores
 run_hatsa_core <- function(subject_data_list, anchor_indices, spectral_rank_k,
-                           k_conn_pos, k_conn_neg, n_refine, use_dtw = FALSE) {
+                           k_conn_pos, k_conn_neg, n_refine, use_dtw = FALSE,
+                           n_cores = 1L) {
 
   if (length(subject_data_list) > 0 && !is.null(subject_data_list[[1]])) {
     stopifnot(is.matrix(subject_data_list[[1]]), !inherits(subject_data_list[[1]], "Matrix"))
@@ -133,44 +138,45 @@ run_hatsa_core <- function(subject_data_list, anchor_indices, spectral_rank_k,
   unique_anchor_indices <- val_results$unique_anchor_indices
   
   num_subjects <- length(subject_data_list)
+  n_cores <- min(as.integer(n_cores), parallel::detectCores())
+  if (is.na(n_cores) || n_cores < 1L) n_cores <- 1L
   U_original_list <- vector("list", num_subjects)
   Lambda_original_list <- vector("list", num_subjects)
   Lambda_original_gaps_list <- vector("list", num_subjects)
   
   message_stage("Stage 1: Computing initial spectral sketches...", interactive_only = TRUE)
   if (num_subjects > 0) {
-    for (i in 1:num_subjects) {
+    process_one <- function(i) {
       X_i <- subject_data_list[[i]]
       current_pnames <- colnames(X_i)
-      if(is.null(current_pnames) || length(current_pnames) != V_p) current_pnames <- pnames
+      if (is.null(current_pnames) || length(current_pnames) != V_p) current_pnames <- pnames
 
-      W_conn_i_sparse <- compute_subject_connectivity_graph_sparse(X_i, current_pnames, k_conn_pos, k_conn_neg, use_dtw)
+      W_conn_i_sparse <- compute_subject_connectivity_graph_sparse(X_i, current_pnames,
+                                                                  k_conn_pos, k_conn_neg, use_dtw)
       L_conn_i_sparse <- compute_graph_laplacian_sparse(W_conn_i_sparse)
-      
-      sketch_result <- compute_spectral_sketch_sparse(L_conn_i_sparse, spectral_rank_k)
-      U_original_list[[i]] <- sketch_result$vectors
-      Lambda_original_list[[i]] <- sketch_result$values
 
-      # Calculate eigengaps for the current subject
-      lambdas_i <- Lambda_original_list[[i]]
-      if (!is.null(lambdas_i) && length(lambdas_i) > 1) {
-        # Denominator for gaps: lambdas_i[-length(lambdas_i)]
-        # Ensure denominators are not zero or too small to avoid Inf/NaN
-        # compute_spectral_sketch_sparse already filters eigenvalues > tol (e.g., 1e-8)
-        # so direct division should be mostly safe, but we can add a small epsilon or check.
+      sketch_result <- compute_spectral_sketch_sparse(L_conn_i_sparse, spectral_rank_k)
+      lambdas_i <- sketch_result$values
+      gaps_i <- if (!is.null(lambdas_i) && length(lambdas_i) > 1) {
         denominators <- lambdas_i[-length(lambdas_i)]
-        # Replace zero or very small denominators with NA to result in NA gaps
-        # This avoids Inf from division and propagates missingness if a lambda is effectively zero.
         denominators[abs(denominators) < .Machine$double.eps^0.5] <- NA
-        gaps_i <- (lambdas_i[-1] - lambdas_i[-length(lambdas_i)]) / denominators
-        Lambda_original_gaps_list[[i]] <- gaps_i
+        (lambdas_i[-1] - lambdas_i[-length(lambdas_i)]) / denominators
       } else {
-        Lambda_original_gaps_list[[i]] <- numeric(0)
+        numeric(0)
       }
-      
-      if (num_subjects > 10 && i %% floor(num_subjects/5) == 0 && interactive()) {
-          message(sprintf("  Stage 1: Processed subject %d/%d", i, num_subjects))
-      }
+      list(U = sketch_result$vectors, Lambda = lambdas_i, gaps = gaps_i)
+    }
+
+    res_list <- if (.Platform$OS.type == "windows" || n_cores == 1L) {
+      lapply(seq_len(num_subjects), process_one)
+    } else {
+      parallel::mclapply(seq_len(num_subjects), process_one, mc.cores = n_cores)
+    }
+
+    for (i in seq_len(num_subjects)) {
+      U_original_list[[i]] <- res_list[[i]]$U
+      Lambda_original_list[[i]] <- res_list[[i]]$Lambda
+      Lambda_original_gaps_list[[i]] <- res_list[[i]]$gaps
     }
   }
   message_stage("Stage 1 complete.", interactive_only = TRUE)
@@ -191,16 +197,21 @@ run_hatsa_core <- function(subject_data_list, anchor_indices, spectral_rank_k,
   message_stage("Stage 3: Applying final rotations...", interactive_only = TRUE)
   U_aligned_list <- vector("list", num_subjects)
   if (num_subjects > 0) {
-    for (i in 1:num_subjects) {
+    rotate_one <- function(i) {
       U_orig_i <- U_original_list[[i]]
       R_final_i <- R_final_list[[i]]
-      
       if (!is.null(U_orig_i) && nrow(U_orig_i) == V_p && ncol(U_orig_i) == spectral_rank_k &&
           !is.null(R_final_i) && nrow(R_final_i) == spectral_rank_k && ncol(R_final_i) == spectral_rank_k) {
-        U_aligned_list[[i]] <- U_orig_i %*% R_final_i
-      } else { 
-        U_aligned_list[[i]] <- matrix(0, nrow = V_p, ncol = spectral_rank_k) 
+        U_orig_i %*% R_final_i
+      } else {
+        matrix(0, nrow = V_p, ncol = spectral_rank_k)
       }
+    }
+
+    U_aligned_list <- if (.Platform$OS.type == "windows" || n_cores == 1L) {
+      lapply(seq_len(num_subjects), rotate_one)
+    } else {
+      parallel::mclapply(seq_len(num_subjects), rotate_one, mc.cores = n_cores)
     }
   }
   message_stage("Stage 3 complete. Core HATSA finished.", interactive_only = TRUE)
@@ -223,7 +234,8 @@ run_hatsa_core <- function(subject_data_list, anchor_indices, spectral_rank_k,
     k_conn_pos = k_conn_pos,
     k_conn_neg = k_conn_neg,
     n_refine = n_refine,
-    use_dtw = use_dtw
+    use_dtw = use_dtw,
+    n_cores = n_cores
   )
   
   projector_object <- hatsa_projector(hatsa_core_results = hatsa_core_results, 
@@ -232,13 +244,3 @@ run_hatsa_core <- function(subject_data_list, anchor_indices, spectral_rank_k,
   return(projector_object)
 }
 
-#' Helper for printing stage messages, optionally only in interactive sessions
-#' @param msg Message to print.
-#' @param interactive_only Logical, if TRUE, message only if session is interactive.
-#' @keywords internal
-message_stage <- function(msg, interactive_only = FALSE) {
-  if (interactive_only && !interactive()) {
-    return(invisible(NULL))
-  }
-  message(paste(Sys.time(), "-", msg))
-}

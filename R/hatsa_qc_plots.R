@@ -73,7 +73,6 @@ plot_k_stability_hatsa <- function(projector_list_over_k,
 
   for (i in seq_along(projector_list_over_k)) {
     proj_obj <- projector_list_over_k[[i]]
-    k_name <- names(projector_list_over_k)[i]
 
     if (!inherits(proj_obj, "hatsa_projector")) {
       warning(sprintf("Item %d in projector_list_over_k is not a hatsa_projector object. Skipping.", i))
@@ -142,15 +141,15 @@ plot_k_stability_hatsa <- function(projector_list_over_k,
       )
 
       mean_cv_value <- NA_real_
-      if (!is.null(spd_list) && length(Filter(Negate(is.null), spd_list)) > 0) {
+      if (!is.null(spd_list)) {
         valid_spd_list <- Filter(Negate(is.null), spd_list)
-        
-        cvs_subject <- sapply(valid_spd_list, function(spd_matrix) {
-          if (is.null(spd_matrix) || !is.matrix(spd_matrix) || any(dim(spd_matrix) == 0)) return(NA_real_)
-          # Eigenvalues of a kxk covariance matrix. k here is proj_obj$parameters$k.
-          if (proj_obj$parameters$k == 0) return(NA_real_)
-          
-          eig_vals <- tryCatch(
+        if (length(valid_spd_list) > 0) {
+          cvs_subject <- vapply(valid_spd_list, function(spd_matrix) {
+            if (is.null(spd_matrix) || !is.matrix(spd_matrix) || any(dim(spd_matrix) == 0)) return(NA_real_)
+            # Eigenvalues of a kxk covariance matrix. k here is proj_obj$parameters$k.
+            if (proj_obj$parameters$k == 0) return(NA_real_)
+
+            eig_vals <- tryCatch(
             eigen(spd_matrix, symmetric = TRUE, only.values = TRUE)$values,
             error = function(e_eig) {warning(sprintf("Eigen decomposition failed for a cov_coeff matrix (k=%d).", current_k)); NULL}
           )
@@ -168,13 +167,14 @@ plot_k_stability_hatsa <- function(projector_list_over_k,
           mean_e <- mean(eig_vals_clean, na.rm = TRUE)
           sd_e <- stats::sd(eig_vals_clean, na.rm = TRUE)
 
-          if (is.na(sd_e) || is.na(mean_e) || abs(mean_e) < .Machine$double.eps) { # check mean_e for near zero
-            return(NA_real_)
-          }
-          return(sd_e / mean_e)
-        })
-        mean_cv_value <- mean(stats::na.omit(cvs_subject), na.rm = TRUE)
-        if (is.nan(mean_cv_value)) mean_cv_value <- NA_real_ # Handle case where all cvs_subject are NA
+            if (is.na(sd_e) || is.na(mean_e) || abs(mean_e) < .Machine$double.eps) { # check mean_e for near zero
+              return(NA_real_)
+            }
+            return(sd_e / mean_e)
+          }, numeric(1))
+          mean_cv_value <- mean(stats::na.omit(cvs_subject), na.rm = TRUE)
+          if (is.nan(mean_cv_value)) mean_cv_value <- NA_real_ # Handle case where all cvs_subject are NA
+        }
       }
       results_df_list[[length(results_df_list) + 1]] <- data.frame(
         k = current_k,
@@ -362,20 +362,17 @@ plot_mds_spd_subjects <- function(projector_object,
     return(NULL)
   }
 
-  if (verbose) message_stage(sprintf("Computing Riemannian distance matrix (type: %s)...", spd_representation_type))
+  if (verbose) {
+    message_stage(
+      sprintf("Computing Riemannian distance matrix (type: %s)...", spd_representation_type)
+    )
+  }
 
-  dist_args <- dist_mat_options
-  dist_args$object <- projector_object
-  dist_args$type <- spd_representation_type
-  # Ensure verbose from main function is passed if not in dist_mat_options
-  if (is.null(dist_args$verbose)) dist_args$verbose <- verbose 
-
-  dist_matrix_full <- tryCatch(
-    do.call(hatsa::riemannian_distance_matrix_spd, dist_args),
-    error = function(e) {
-      warning(sprintf("Riemannian distance matrix computation failed: %s", e$message))
-      NULL
-    }
+  dist_matrix_full <- compute_mds_distance_matrix(
+    projector_object,
+    spd_representation_type,
+    dist_mat_options,
+    verbose = verbose
   )
 
   if (is.null(dist_matrix_full)) {
@@ -410,43 +407,20 @@ plot_mds_spd_subjects <- function(projector_object,
   # Our riemannian_distance_matrix_spd should return this.
   # However, if there are any remaining NAs after subsetting (should not happen if subsetting is correct),
   # cmdscale will fail. We check for this implicitly by tryCatch.
-  mds_fit <- tryCatch(
-    stats::cmdscale(as.dist(dist_matrix_valid), k = k_mds, eig = TRUE, add = cmdscale_add),
-    error = function(e) {
-      warning(sprintf("MDS computation (cmdscale) failed: %s", e$message))
-      NULL
-    }
-  )
+  mds_fit <- run_cmdscale_safe(dist_matrix_valid, k_mds = k_mds, add = cmdscale_add)
 
   if (is.null(mds_fit)) {
     return(list(plot = NULL, mds_results = NULL, distance_matrix = dist_matrix_full, valid_subject_indices = valid_subject_indices))
   }
 
-  mds_coords <- as.data.frame(mds_fit$points)
-  colnames(mds_coords) <- paste0("Dim", 1:ncol(mds_coords))
-  mds_coords$subject_idx_original <- valid_subject_indices # Store original index
-
-  # Prepare plotting data by merging with subject_info if provided
-  plot_df <- mds_coords
-  plot_df$subject_label_plot <- paste0("S", plot_df$subject_idx_original) # Default labels
-
-  if (!is.null(subject_info) && inherits(subject_info, "data.frame")) {
-      if(nrow(subject_info) == N_total_subjects) {
-          subject_info_valid <- subject_info[valid_subjects_mask, , drop = FALSE]
-          subject_info_valid$subject_idx_original <- valid_subject_indices # for merging with mds_coords
-          
-          # Attempt to merge. If subject_info has rownames that are subject IDs from dist_matrix,
-          # and dist_matrix had interpretable rownames/colnames, this logic would need adjustment.
-          # Current riemannian_distance_matrix_spd aims for 1:N_subjects in rownames/colnames.
-          plot_df <- merge(plot_df, subject_info_valid, by = "subject_idx_original", all.x = TRUE)
-
-          if ("subject_label" %in% colnames(plot_df) && plot_labels) {
-             plot_df$subject_label_plot <- plot_df$subject_label
-          }
-      } else {
-          warning("`subject_info` provided but row count does not match N_subjects. It will be ignored for merging specifics, but used for column name checks.")
-      }
-  }
+  plot_df <- prepare_mds_plot_df(
+    mds_fit,
+    valid_subject_indices,
+    valid_subjects_mask,
+    N_total_subjects,
+    subject_info = subject_info,
+    plot_labels = plot_labels
+  )
   
   # Set up aesthetics
   plot_aes <- ggplot2::aes(x = Dim1, y = Dim2)
@@ -508,9 +482,6 @@ plot_mds_spd_subjects <- function(projector_object,
     valid_subject_indices_in_mds = valid_subject_indices
   ))
 }
-
-# Helper for null or default
-'%||%' <- function(a, b) if (is.null(a)) b else a
 
 # Make sure ggplot2 related imports are at the top of the file or in NAMESPACE
 # @importFrom ggplot2 ggplot aes geom_point geom_text geom_hline geom_vline labs theme_bw ggtitle

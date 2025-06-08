@@ -156,6 +156,18 @@ task_hatsa_projector <- function(task_hatsa_results) {
     Lambda_task_list = task_hatsa_results$Lambda_task_list
   )
 
+  # --- Initialize cache and store Fréchet mean of rotations ---
+  obj$._cache <- list()
+  valid_Rs_for_mean <- Filter(function(x) is.matrix(x) && !is.null(x), task_hatsa_results$R_final_list)
+  if (length(valid_Rs_for_mean) > 0) {
+    obj$._cache$R_frechet_mean <- tryCatch(
+      frechet_mean_so_fast(valid_Rs_for_mean, refine = TRUE),
+      error = function(e) if (k > 0) diag(k) else matrix(0, 0, 0)
+    )
+  } else {
+    obj$._cache$R_frechet_mean <- if (k > 0) diag(k) else matrix(0, 0, 0)
+  }
+
   # Ensure method is correctly set if not in params (it should be)
   if (is.null(obj$method)) obj$method <- "task_hatsa"
   if (is.null(obj$parameters$method)) obj$parameters$method <- "task_hatsa"

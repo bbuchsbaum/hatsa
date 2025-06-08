@@ -133,14 +133,16 @@ select_anchors_mra <- function(U_original_list_pilot,
     num_current_anchors <- length(current_anchor_indices)
     if (num_current_anchors < 1) return(list(kappa = Inf, dispersion = Inf, score = -Inf))
 
+    # Cache anchor rows for each subject once
+    anchor_rows_list <- lapply(U_original_list_pilot, function(U_subj) {
+      if (is.null(U_subj) || nrow(U_subj) < max(current_anchor_indices)) return(NULL)
+      U_subj[current_anchor_indices, , drop = FALSE]
+    })
+
     # Metric 1: Kappa of the Euclidean mean of anchor rows from U_original_list_pilot
     kappa_val <- Inf
     if (num_current_anchors >= min_anchors_for_metrics || num_current_anchors >= k_spectral_rank) {
-        anchor_matrices_pilot <- lapply(U_original_list_pilot, function(U_subj) {
-            if (is.null(U_subj) || nrow(U_subj) < max(current_anchor_indices)) return(NULL)
-            U_subj[current_anchor_indices, , drop = FALSE]
-        })
-        valid_anchor_matrices <- Filter(Negate(is.null), anchor_matrices_pilot)
+        valid_anchor_matrices <- Filter(Negate(is.null), anchor_rows_list)
         if (length(valid_anchor_matrices) > 0) {
             # Check all matrices have same dim: num_current_anchors x k_spectral_rank
             if (!all(sapply(valid_anchor_matrices, function(m) all(dim(m) == c(num_current_anchors, k_spectral_rank))))) {
@@ -153,73 +155,31 @@ select_anchors_mra <- function(U_original_list_pilot,
             warning("No valid pilot anchor matrices for kappa calculation.")
         }
     }
-    
+
     # Metric 2: Riemannian Dispersion of covariance matrices of anchor rows
     dispersion_val <- Inf
     if (num_current_anchors >= min_anchors_for_metrics || num_current_anchors >= k_spectral_rank) { # Need enough rows for cov
-        spd_list_pilot <- lapply(U_original_list_pilot, function(U_subj) {
-            if (is.null(U_subj) || nrow(U_subj) < max(current_anchor_indices)) return(NULL)
-            anchor_rows_subj <- U_subj[current_anchor_indices, , drop = FALSE]
+        spd_list_pilot <- lapply(anchor_rows_list, function(anchor_rows_subj) {
+            if (is.null(anchor_rows_subj)) return(NULL)
             if (nrow(anchor_rows_subj) < 2 || nrow(anchor_rows_subj) < k_spectral_rank) return(NULL) # cov needs multiple observations
             tryCatch(stats::cov(anchor_rows_subj), error = function(e) NULL)
         })
         valid_spd_list <- Filter(Negate(is.null), spd_list_pilot)
         
         if (length(valid_spd_list) > 1) {
-            # Ensure all SPD matrices are k x k
             valid_spd_list <- Filter(function(S) is.matrix(S) && all(dim(S) == c(k_spectral_rank, k_spectral_rank)), valid_spd_list)
             if (length(valid_spd_list) > 1) {
                 disp_opts <- riemannian_dispersion_options
-                # Construct a temporary projector-like object or pass list directly if API allows
-                # For now, assuming riemannian_dispersion_spd can take a raw list of SPDs if object=NULL
-                # This requires modification to riemannian_dispersion_spd or a new helper.
-                # HACK: Create minimal list structure that riemannian_dispersion_spd might accept if it looks for object$N_subjects
-                # This is not ideal. Better: riemannian_dispersion_spd should have a method for lists.
-                # For now, let's assume we pass to a conceptual helper: calculate_dispersion_for_spd_list(valid_spd_list, disp_opts)
-                # For a quick implementation, let's assume riemannian_dispersion_spd can be adapted or we use a direct calc:
-                
-                # Placeholder for direct calculation if riemannian_dispersion_spd cannot be easily used:
-                # 1. Compute Frechet mean of valid_spd_list (e.g., using hatsa::frechet_mean_spd)
-                # 2. Compute sum of squared distances to mean.
-                # This is simplified here. Proper use of riemannian_dispersion_spd is preferred.
-                
-                # Simulate calling riemannian_dispersion_spd (needs a method for raw lists or dummy object)
-                # This is a temporary workaround. The actual call would depend on how `riemannian_dispersion_spd` can handle raw SPD lists.
-                # We will assume for now it fails gracefully if it cannot. The ticket implies using it.
-                dummy_projector_for_disp <- list(
-                    parameters = list(N_subjects = length(valid_spd_list)),
-                    # get_spd_representations would be mocked to return valid_spd_list
-                    # This part needs careful handling based on actual API of riemannian_dispersion_spd
-                    .get_spd_representations_output = valid_spd_list # Internal convention for this example
+                disp_opts$verbose <- FALSE
+                dispersion_results <- tryCatch(
+                    do.call(riemannian_dispersion_spd, c(list(valid_spd_list), disp_opts)),
+                    error = function(e) NULL
                 )
-                class(dummy_projector_for_disp) <- "hatsa_projector" # To satisfy S3 dispatch if needed
-
-                current_disp_opts <- riemannian_dispersion_options
-                current_disp_opts$object <- NULL # Indicate we are providing spd_matrices_list directly
-                current_disp_opts$spd_matrices_list <- valid_spd_list
-                current_disp_opts$verbose <- FALSE # Suppress verbose from internal call usually
-
-                # Need to ensure riemannian_dispersion_spd can accept spd_matrices_list
-                # if object is NULL. This is a new requirement for that function.
-                # For now, let's assume a direct calculation for simplicity of MRA-select draft:
-                if (length(valid_spd_list) > 1) {
-                    mean_spd <- tryCatch(hatsa::frechet_mean_spd(valid_spd_list, 
-                                                                metric = current_disp_opts$spd_metric %||% "logeuclidean",
-                                                                tol = current_disp_opts$frechet_tol %||% 1e-7,
-                                                                max_iter = current_disp_opts$frechet_max_iter %||% 50,
-                                                                verbose = FALSE), error = function(e) NULL)
-                    if (!is.null(mean_spd)){
-                        distances_sq <- sapply(valid_spd_list, function(S_i) {
-                            dist_val <- tryCatch(hatsa::riemannian_distance_spd(S_i, mean_spd, 
-                                                                             metric=current_disp_opts$spd_metric %||% "logeuclidean", 
-                                                                             epsilon = current_disp_opts$spd_regularize_epsilon %||% 1e-6)^2,
-                                                 error = function(e) NA)
-                            return(dist_val)
-                        })
-                        dispersion_val <- mean(na.omit(distances_sq)) # Mean squared distance
-                        if(is.nan(dispersion_val)) dispersion_val <- Inf
-                    } else { dispersion_val <- Inf }
-                } else { dispersion_val <- Inf }
+                if (!is.null(dispersion_results) && is.finite(dispersion_results$mean_dispersion)) {
+                    dispersion_val <- dispersion_results$mean_dispersion
+                } else {
+                    dispersion_val <- Inf
+                }
             } else { dispersion_val <- Inf }
         } else { dispersion_val <- Inf }
     }
@@ -257,21 +217,20 @@ select_anchors_mra <- function(U_original_list_pilot,
                         i, num_to_select_additionally, length(candidate_pool), length(selected_anchors)))
     }
     
-    iter_scores <- data.frame(candidate_idx = integer(), score = numeric(), kappa = numeric(), dispersion = numeric())
-
-    for (candidate_anchor_idx in candidate_pool) {
+    scores_list <- lapply(candidate_pool, function(candidate_anchor_idx) {
       tentative_anchors <- sort(unique(c(selected_anchors, candidate_anchor_idx)))
       metrics <- .evaluate_anchor_set(tentative_anchors)
-      
-      iter_scores <- rbind(iter_scores, data.frame(candidate_idx = candidate_anchor_idx, 
-                                                    score = metrics$score, 
-                                                    kappa = metrics$kappa, 
-                                                    dispersion = metrics$dispersion))
+      data.frame(candidate_idx = candidate_anchor_idx,
+                 score = metrics$score,
+                 kappa = metrics$kappa,
+                 dispersion = metrics$dispersion)
+    })
 
-      if (metrics$score > best_current_iteration_score) {
-        best_current_iteration_score <- metrics$score
-        best_candidate_this_iteration <- candidate_anchor_idx
-      }
+    iter_scores <- do.call(rbind, scores_list)
+    if (nrow(iter_scores) > 0) {
+      best_idx <- which.max(iter_scores$score)
+      best_current_iteration_score <- iter_scores$score[best_idx]
+      best_candidate_this_iteration <- iter_scores$candidate_idx[best_idx]
     }
     
     # Sort iter_scores for review (optional)
@@ -310,9 +269,3 @@ select_anchors_mra <- function(U_original_list_pilot,
 
   return(sort(selected_anchors))
 }
-
-# Helper for null or default in function (already in hatsa_qc_plots.R, define locally or ensure source)
-# Consider moving to a utils.R file if used commonly
-if (!exists("%||%", mode = "function")) {
-  `%||%` <- function(a, b) if (is.null(a)) b else a
-} 
