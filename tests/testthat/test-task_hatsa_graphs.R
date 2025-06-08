@@ -6,7 +6,7 @@ skip_on_cran()
 
 source("../../R/task_hatsa.R")
 
-context("compute_W_task_from_activations and related graph construction")
+describe("compute_W_task_from_activations and related graph construction", {
 
 test_that("compute_W_task_from_activations returns correct type and dimensions", {
   set.seed(1)
@@ -89,4 +89,4 @@ if (exists("compute_W_task_from_encoding", mode="function")) {
     expect_equal(dim(W), c(4,4))
     expect_true(Matrix::isSymmetric(W))
   })
-} 
+} })

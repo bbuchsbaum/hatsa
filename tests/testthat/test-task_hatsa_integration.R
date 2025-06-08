@@ -1,7 +1,7 @@
 # Test for end-to-end functionality of run_task_hatsa
 # THFIX-007
 
-context("Integration Test for run_task_hatsa")
+describe("Integration Test for run_task_hatsa", {
 
 test_that("run_task_hatsa with core_hatsa method runs and produces valid output (sequential)", {
   # Ensure future plan is sequential for this test block for deterministic behavior
@@ -415,3 +415,4 @@ test_that("run_task_hatsa with core_hatsa method runs with future_plan = 'multis
 
 })
 
+})

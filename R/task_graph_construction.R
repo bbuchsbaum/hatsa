@@ -596,7 +596,7 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
 #' @return A sparse, symmetric, z-scored `dgCMatrix` representing the residualized graph.
 #'
 #' @importFrom Matrix t crossprod tcrossprod forceSymmetric
-#' @importFrom RSpectra eigs_sym
+#' @importFrom PRIMME eigs_sym
 #' @importFrom methods is
 #' @keywords internal
 residualize_graph_on_subspace <- function(W_graph_to_residualize,
@@ -625,10 +625,10 @@ residualize_graph_on_subspace <- function(W_graph_to_residualize,
   # 1. Get eigenvectors U of L_graph_for_projection (L_A)
   message_stage(sprintf("Computing %d eigenvectors of projection Laplacian...", k_proj), interactive_only = TRUE)
   eigs_result <- tryCatch({
-    RSpectra::eigs_sym(L_graph_for_projection,
-                       k = k_proj,
+    PRIMME::eigs_sym(L_graph_for_projection,
+                       NEig = k_proj,
                        which = "SM", # Smallest Magnitude
-                       opts = list(retvec = TRUE, tol = eigenvalue_tol))
+                       tol = eigenvalue_tol)
   }, error = function(e) {
     warning(paste("Eigen decomposition failed:", e$message, ". Returning original graph."))
     return(NULL)

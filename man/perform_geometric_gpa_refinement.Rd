@@ -2,51 +2,67 @@
 % Please edit documentation in R/procrustes_alignment.R
 \name{perform_geometric_gpa_refinement}
 \alias{perform_geometric_gpa_refinement}
-\title{Perform Geometric Generalized Procrustes Analysis (Geo-GPA) Refinement}
+\title{Perform Geometric Generalized Procrustes Analysis (Geo-GPA) on SO(k)}
 \usage{
 perform_geometric_gpa_refinement(
   A_originals_list,
-  n_refine,
+  n_refine = 10,
   k,
-  m_rows = NULL,
-  initial_R_list = NULL,
+  m_rows,
   tol = 1e-07,
-  verbose = FALSE,
-  frechet_mean_options = list()
+  rotation_mode = c("svd", "riemannian"),
+  frechet_mean_options = list(),
+  verbose = TRUE,
+  initial_R_list = NULL
 )
 }
 \arguments{
-\item{A_originals_list}{List of `m x k` anchor matrices for `N` subjects.}
+\item{A_originals_list}{A list of subject-specific anchor matrices (m_rows x k).
+Each matrix `A_i` contains the rows from `U_original_list[[i]]` corresponding
+to the `unique_anchor_indices`.}
 
-\item{n_refine}{Integer, number of refinement iterations.}
+\item{n_refine}{Integer, number of GPA refinement iterations. Default: 10.}
 
-\item{k}{Integer, spectral rank (number of columns in anchor matrices).}
+\item{k}{Integer, the dimensionality of the sketch space (number of columns in A_i and R_i).}
 
-\item{m_rows}{Integer, number of rows in anchor matrices (anchor count).
-If NULL, inferred from the first valid matrix in `A_originals_list`.}
+\item{m_rows}{Integer, number of anchor features (number of rows in A_i).}
 
-\item{initial_R_list}{Optional. A list of k x k rotation matrices to start with.
-If NULL, an initial `T_anchor` is computed as the mean of `A_originals_list`,
-and then initial `R_list` is computed by aligning each `A_original` to this `T_anchor`.}
+\item{tol}{Numeric, tolerance for convergence based on the relative Frobenius norm
+change in the template `T_template`. Default: 1e-7.}
 
-\item{tol}{Numeric, tolerance for convergence based on the change in the Frobenius
-norm of `R_bar` (the Fréchet mean of rotations). Default: 1e-7.}
-
-\item{verbose}{Logical, if TRUE, prints progress messages. Default: FALSE.}
+\item{rotation_mode}{Character string, one of `"svd"` (default) or `"riemannian"`.
+- `"svd"`: Uses SVD to find the closest SO(k) rotation for each subject to align
+  `A_i` with `T_template`. `T_template` is the Euclidean mean of `A_i R_i`.
+  This mode minimizes the sum of squared Frobenius distances `sum(||A_i R_i - T||_F^2)`.
+- `"riemannian"`: Individual rotations `R_i` are updated as in `"svd"` mode.
+  However, `T_template` is updated by first computing the Frechet mean (`R_bar`)
+  of the current `R_list`, then averaging `A_i R_i R_bar^T` (configurations aligned
+  to `R_bar`'s frame), and finally rotating this average back by `R_bar`.
+  This mode seeks to make the template orientation consistent with the intrinsic
+  mean of the rotation ensemble.}
 
 \item{frechet_mean_options}{A list of options to pass to `hatsa::frechet_mean_so_k`,
-such as `max_iter`, `tol` (for its internal convergence), `project_to_SOk`.}
+used if `rotation_mode = "riemannian"` or for the final `R_bar_final` computation.
+Example: `list(max_iter = 20, tol = 1e-5)`. Defaults are used if not provided.}
+
+\item{verbose}{Logical, if TRUE, prints progress messages. Default TRUE.}
+
+\item{initial_R_list}{Optional list of initial k x k rotation matrices. If NULL,
+identity matrices are used.}
 }
 \value{
-List: `R_final_list` (list of `k x k` rotation matrices),
-        `T_anchor_final` (final `m x k` group anchor template, geometrically derived),
-        `R_bar_final` (final `k x k` Fréchet mean of the rotations).
+A list containing:
+  - `R_final_list`: List of final subject-specific rotation matrices (k x k).
+  - `T_anchor_final`: The final group anchor template matrix (m_rows x k).
+  - `R_bar_final`: The Fréchet mean of the final `R_final_list`.
 }
 \description{
-Iteratively refines subject rotations and a group anchor template using a
-geometric approach on SO(k) for rotation averaging.
-The consensus anchor template `T_anchor_geo` is formed by averaging subject
-anchor matrices after they have been rotated to a common orientation defined
-by the Fréchet mean of their current rotation estimates (`R_bar`).
+Refines a set of rotation matrices and a group anchor template using either
+an SVD-based iterative Procrustes approach (default) or a variant where the
+template update is oriented by the Frechet mean of rotations.
+The SVD mode minimizes the Frobenius distance between rotated subject anchors
+and the template. The Riemannian mode aims to make the template's orientation
+consistent with the Frechet mean of subject rotations, which implicitly relates
+to minimizing intrinsic SO(k) geodesic distances for the rotations' central tendency.
 }
 \keyword{internal}

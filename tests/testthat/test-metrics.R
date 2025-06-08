@@ -1,4 +1,4 @@
-context("metrics - misalign_deg")
+describe("metrics - misalign_deg", {
 
 test_that("misalign_deg basic functionality and known angles", {
   # Identity matrices
@@ -158,4 +158,4 @@ test_that("misalign_deg specific k_dim warnings for fallback", {
     misalign_deg(R2_4d, R1_4d, method="geodesic"),
     "Fallback trace-based angle is most accurate for 3x3 rotations"
   )
-}) 
+}) })

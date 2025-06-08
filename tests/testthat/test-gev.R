@@ -3,7 +3,7 @@ library(Matrix)
 
 # Assuming solve_gev_laplacian_primme is available from hatsa package (e.g. via devtools::load_all())
 
-context("GEV Helper Functions: solve_gev_laplacian_primme")
+describe("GEV Helper Functions: solve_gev_laplacian_primme", {
 
 test_that("solve_gev_laplacian_primme handles block-diagonal Laplacians and filters correctly", {
   skip_if_not_installed("PRIMME")
@@ -96,4 +96,6 @@ test_that("solve_gev_laplacian_primme handles block-diagonal Laplacians and filt
         expect_true(all(abs(result_tight$values) < lambda_max_thresh_tight))
       }
   }
+})
+
 })

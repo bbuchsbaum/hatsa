@@ -3,7 +3,7 @@
 library(testthat)
 skip_on_cran()
 
-context("run_task_hatsa end-to-end pipeline")
+describe("run_task_hatsa end-to-end pipeline", {
 
 make_toy_subject_data <- function(N, T, V) {
   lapply(1:N, function(i) matrix(rnorm(T*V), nrow=T, ncol=V))
@@ -159,4 +159,4 @@ test_that("run_task_hatsa errors for empty subject_data_list or out-of-bounds an
     parcel_names = parcel_names,
     verbose = FALSE
   ))
-}) 
+}) })

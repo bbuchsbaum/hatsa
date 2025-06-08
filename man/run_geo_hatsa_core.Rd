@@ -13,6 +13,10 @@ run_geo_hatsa_core(
   n_refine = 10,
   V_p = NULL,
   use_dtw = FALSE,
+  graph_mode = "anchor_block",
+  schur_eps = 0.01,
+  eigengap_tol = 1e-09,
+  rotation_mode = "svd",
   verbose = TRUE,
   frechet_mean_options = list(),
   gpa_tol = 1e-07
@@ -38,24 +42,41 @@ Each element is a numeric matrix (T_i time points x V_p parcels).}
 \item{use_dtw}{Logical, whether to use Dynamic Time Warping for FC graph (passed to
 `compute_subject_connectivity_graph_sparse`). Default FALSE.}
 
+\item{graph_mode}{Character string, specifies the graph construction method.
+Options include `"anchor_block"` (default), `"schur"` (Schur complement),
+`"full"` (standard kNN graph). Passed to
+`compute_subject_connectivity_graph_sparse`.}
+
+\item{schur_eps}{Numeric, epsilon for Schur complement graph construction if
+`graph_mode = "schur"`. Default: 0.01.}
+
+\item{eigengap_tol}{Numeric, tolerance for checking the eigengap after spectral
+sketch computation. If `lambda_k - lambda_{k+1} < eigengap_tol`, a warning
+is issued for that subject. Default: 1e-9.}
+
+\item{rotation_mode}{Character string, passed to `perform_geometric_gpa_refinement`.
+One of `"svd"` (default) or `"riemannian"`. See that function for details.}
+
 \item{verbose}{Logical, if TRUE, prints progress messages. Default TRUE.}
 
 \item{frechet_mean_options}{A list of options to pass to `hatsa::frechet_mean_so_k`
-called within `perform_geometric_gpa_refinement`.}
+within `perform_geometric_gpa_refinement`. Default: `list()`.}
 
 \item{gpa_tol}{Numeric, tolerance for convergence in `perform_geometric_gpa_refinement`.
 Default: 1e-7.}
 }
 \value{
-A list containing the core Geo-HATSA results:
+A list containing the core Geo-HATSA results and QC metrics:
   \itemize{
     \item{\code{U_aligned_list}: List of subject-specific aligned sketch matrices (V_p x k).}
     \item{\code{R_final_list}: List of subject-specific rotation matrices (k x k).}
     \item{\code{U_original_list}: List of subject-specific original sketch matrices (V_p x k).}
     \item{\code{Lambda_original_list}: List of subject-specific original eigenvalues (length k).}
     \item{\code{Lambda_original_gaps_list}: List of subject-specific eigengap ratios.}
-    \item{\code{T_anchor_final}: The final group anchor template matrix (N_anchors x k), geometrically derived.}
+    \item{\code{T_anchor_final}: The final group anchor template matrix (N_anchors x k).}
     \item{\code{R_bar_final}: The final Fréchet mean of rotation matrices from Geo-GPA.}
+    \item{\code{qc_metrics}: A data frame with per-subject QC flags (laplacian_computed_ok, 
+          sketch_computed_ok, eigengap_sufficient).}
   }
   This list is intended to be used as input to the `hatsa_projector` constructor,
   though `R_bar_final` is an additional output specific to Geo-HATSA.
@@ -63,8 +84,8 @@ A list containing the core Geo-HATSA results:
 \description{
 This function implements a variant of the HATSA core algorithm where the
 Generalized Procrustes Analysis (GPA) step for refining rotations and the
-group anchor template uses a geometric approach on SO(k).
-Specifically, it calls `perform_geometric_gpa_refinement`.
+group anchor template uses a geometric approach on SO(k) via
+`perform_geometric_gpa_refinement`.
 }
 \seealso{
 \code{\link{perform_geometric_gpa_refinement}}, \code{\link{hatsa_projector}}

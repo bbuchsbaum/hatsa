@@ -5,9 +5,9 @@
 \alias{hatsa-package}
 \alias{hatsa}
 \alias{hatsaR}
-\title{hatsa: What the Package Does (one line, title case)}
+\title{hatsa: Hyperalignment via Task-informed Shared Analysis}
 \description{
-What the package does (one paragraph).
+Implements advanced hyperalignment methods for functional neuroimaging data with task-informed features. Provides sparse graph-based alignment of functional connectivity patterns across subjects using spectral decomposition and Procrustes alignment. Includes extensions for task-informed alignment, Riemannian geometry operations on SPD manifolds, and voxel-level projection via Nyström extension.
 
 The `hatsa` package implements the Core HATSA (Hybrid Anchor-based
 Time-Series Alignment) algorithm. This algorithm is designed to align
@@ -65,7 +65,7 @@ The algorithm follows three main stages:
 }
 
 \author{
-\strong{Maintainer}: Brad Buchsbaum \email{brad.buchsbaum@gmail.com} (\href{https://orcid.org/YOUR-ORCID-ID}{ORCID})
+\strong{Maintainer}: Brad Buchsbaum \email{brad.buchsbaum@gmail.com}
 
 }
 \keyword{internal}

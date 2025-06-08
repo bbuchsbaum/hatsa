@@ -1,4 +1,4 @@
-context("Voxel Projection Functionality")
+describe("Voxel Projection Functionality", {
 
 # Helper function to generate mock coordinates
 .generate_mock_coords <- function(N_points, N_dim = 3) {
@@ -247,4 +247,4 @@ test_that("project_voxels.hatsa_projector: basic functionality and dimensions", 
 #   then C_voxel_coeffs_i should be identical. C_voxel_aligned_i should then only differ by R_i.
 #   This is complex to set up perfectly due to U_orig_i differing per subject.
 # - A simpler consistency: if R_i is identity for all subjects (e.g. if T_anchor_final was based on subject 1 and U_orig_1)
-#   then aligned and unaligned coefficients should be similar for subject 1. 
+#   then aligned and unaligned coefficients should be similar for subject 1. })

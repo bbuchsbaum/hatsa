@@ -1,12 +1,15 @@
 Package: hatsa
 Type: Package
-Title: What the Package Does (one line, title case)
-Version: 0.0.0.9000
+Title: Hyperalignment via Task-informed Shared Analysis
+Version: 0.1.0
 Authors@R: 
-    person("Brad", "Buchsbaum", , "brad.buchsbaum@gmail.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: MIT
+    person("Brad", "Buchsbaum", , "brad.buchsbaum@gmail.com", role = c("aut", "cre"))
+Description: Implements advanced hyperalignment methods for functional neuroimaging data
+    with task-informed features. Provides sparse graph-based alignment of functional
+    connectivity patterns across subjects using spectral decomposition and Procrustes
+    alignment. Includes extensions for task-informed alignment, Riemannian geometry
+    operations on SPD manifolds, and voxel-level projection via Nyström extension.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2.9000
@@ -15,11 +18,18 @@ Imports:
     RANN,
     stats,
     multivarious,
-    expm
+    expm,
+    PRIMME,
+    future.apply,
+    ggplot2,
+    methods
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
-    vegan
+    vegan,
+    MASS,
+    shapes,
+    ggrepel
 Config/testthat/edition: 3 
 

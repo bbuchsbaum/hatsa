@@ -181,7 +181,7 @@ compute_subject_connectivity_graph_sparse <- function(X_subject, parcel_names,
   # Z-score non-zero elements
   W_conn_i <- zscore_nonzero_sparse(W_symmetric)
   
-  return(as(W_conn_i, "dgCMatrix"))
+  return(as(W_conn_i, "generalMatrix"))
 }
 
 #' Compute sparse α-lazy random-walk normalized graph Laplacian `L = I - α D⁻¹ W`
@@ -239,10 +239,10 @@ compute_graph_laplacian_sparse <- function(W_sparse, alpha = 0.93, degree_type =
       L_rw_lazy_sym <- Matrix::Matrix(L_rw_lazy_sym, sparse = TRUE)
   }
 
-  return(as(Matrix::drop0(L_rw_lazy_sym), "dgCMatrix"))
+  return(as(Matrix::drop0(L_rw_lazy_sym), "generalMatrix"))
 }
 
-#' Compute spectral sketch `U_orig_i` using `RSpectra` or `base::eigen`
+#' Compute spectral sketch `U_orig_i` using `PRIMME` or `base::eigen`
 #'
 #' Computes the `k` eigenvectors of the sparse graph Laplacian `L_conn_i_sparse`
 #' corresponding to the smallest, non-trivial eigenvalues.
@@ -255,7 +255,7 @@ compute_graph_laplacian_sparse <- function(W_sparse, alpha = 0.93, degree_type =
 #'   - `vectors`: A dense matrix `U_orig_i` (`V_p x k_actual`) of eigenvectors.
 #'     `k_actual` may be less than `k` if not enough informative eigenvectors are found.
 #'   - `values`: A vector of eigenvalues corresponding to the eigenvectors.
-#' @importFrom RSpectra eigs_sym
+#' @importFrom PRIMME eigs_sym
 #' @keywords internal
 compute_spectral_sketch_sparse <- function(L_conn_i_sparse, k) {
   V_p <- nrow(L_conn_i_sparse)
@@ -294,10 +294,10 @@ compute_spectral_sketch_sparse <- function(L_conn_i_sparse, k) {
     eigen_vals_raw <- eigen_decomp$values
     eigen_vecs_raw <- eigen_decomp$vectors
   } else {
-    eigs_result <- RSpectra::eigs_sym(L_conn_i_sparse, 
-                                      k = num_eigs_to_request, 
+    eigs_result <- PRIMME::eigs_sym(L_conn_i_sparse, 
+                                      NEig = num_eigs_to_request, 
                                       which = "SM", 
-                                      opts = list(retvec = TRUE, tol = 1e-9))
+                                      tol = 1e-9)
     eigen_vals_raw <- eigs_result$values
     eigen_vecs_raw <- eigs_result$vectors
   }
