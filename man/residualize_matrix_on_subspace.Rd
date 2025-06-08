@@ -20,9 +20,11 @@ A numeric matrix with the same dimensions as `matrix_to_residualize`,
 }
 \description{
 Residualizes the rows of `matrix_to_residualize` with respect to
-  the row space of `subspace_basis_matrix`. This is equivalent to projecting
-  each column of `t(matrix_to_residualize)` onto the column space of
-  `t(subspace_basis_matrix)` and taking the residuals.
+  the row space of `subspace_basis_matrix`. When `matrix_to_residualize` has
+  more columns than rows the function operates directly on the matrix without
+  transposing, residualizing columns instead to reduce memory pressure. In the
+  usual case it projects each column of `t(matrix_to_residualize)` onto the
+  column space of `t(subspace_basis_matrix)` and takes the residuals.
 }
 \examples{
 # Z_i: 3 conditions, 5-dimensional spectral space (3x5)
