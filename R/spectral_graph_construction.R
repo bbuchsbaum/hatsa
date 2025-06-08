@@ -1,3 +1,39 @@
+#' Compute pairwise correlations in manageable chunks
+#'
+#' Helper that computes Pearson correlations between all columns of
+#' `X_centered` in blocks to avoid allocating the full `V_p \times V_p`
+#' dense matrix. Each block contains `block_size` columns and returns a list of
+#' correlation submatrices.
+#'
+#' @param X_centered A centered numeric matrix (`T_i` x `V_p`).
+#' @param col_sds Vector of column standard deviations for `X_centered`.
+#' @param block_size Number of columns per block. Defaults to 50.
+#' @return A list where each element contains:
+#'   \itemize{
+#'     \item `indices`: integer vector of column indices covered by the block.
+#'     \item `corr`: matrix of correlations (`length(indices)` x `V_p`).
+#'   }
+#' @importFrom Matrix crossprod
+#' @keywords internal
+chunked_sparse_cor <- function(X_centered, col_sds, block_size = 50L) {
+  V_p <- ncol(X_centered)
+  if (V_p == 0) return(list())
+  T_i <- nrow(X_centered)
+  block_starts <- seq(1, V_p, by = block_size)
+  res <- vector("list", length(block_starts))
+  idx <- 1L
+  for (start in block_starts) {
+    end <- min(start + block_size - 1L, V_p)
+    cov_block <- Matrix::crossprod(X_centered[, start:end, drop = FALSE], X_centered) / (T_i - 1)
+    corr_block <- sweep(cov_block, 2, col_sds, "/")
+    corr_block <- sweep(corr_block, 1, col_sds[start:end], "/")
+    corr_block[!is.finite(corr_block)] <- 0
+    res[[idx]] <- list(indices = start:end, corr = corr_block)
+    idx <- idx + 1L
+  }
+  res
+}
+
 #' Compute subject-specific sparse connectivity graph `W_conn_i`
 #'
 #' Calculates the sparse connectivity graph for a single subject.
@@ -68,21 +104,24 @@ compute_subject_connectivity_graph_sparse <- function(X_subject, parcel_names,
   selectable_parcel_indices <- setdiff(1:V_p, zero_var_indices)
 
   if ((k_conn_pos > 0 || k_conn_neg > 0) && length(selectable_parcel_indices) > 0) {
-    for (i in 1:V_p) {
-      if (i %in% zero_var_indices) { # Skip k-NN selection for zero-variance parcels themselves
-          row_indices_list[[i]] <- integer(0) # Ensure it's not NULL for unlist logic
+    cor_blocks <- chunked_sparse_cor(X_centered, col_sds, block_size = 50L)
+    for (block in cor_blocks) {
+      block_indices <- block$indices
+      block_corrs <- block$corr
+      for (offset in seq_along(block_indices)) {
+        i <- block_indices[offset]
+        if (i %in% zero_var_indices) {
+          row_indices_list[[i]] <- integer(0)
           col_indices_list[[i]] <- integer(0)
           values_list[[i]] <- numeric(0)
           next
-      }
-      
-      cov_vec <- as.numeric(crossprod(X_centered, X_centered[, i])) / (T_i - 1)
-      node_corrs_full_row <- cov_vec / (col_sds * col_sds[i])
-      node_corrs_full_row[!is.finite(node_corrs_full_row)] <- 0
-      node_corrs_full_row[i] <- 0
-      if (length(zero_var_indices) > 0) {
+        }
+
+        node_corrs_full_row <- as.numeric(block_corrs[offset, ])
+        node_corrs_full_row[i] <- 0
+        if (length(zero_var_indices) > 0) {
           node_corrs_full_row[zero_var_indices] <- 0
-      }
+        }
 
       node_corrs_candidates <- node_corrs_full_row[selectable_parcel_indices]
       
@@ -147,10 +186,12 @@ compute_subject_connectivity_graph_sparse <- function(X_subject, parcel_names,
           row_indices_list[[i]] <- integer(0) # Ensure it's not NULL
           col_indices_list[[i]] <- integer(0)
           values_list[[i]] <- numeric(0)
+
       }
     }
   }
-  
+}
+
   final_row_indices <- unlist(row_indices_list)
   final_col_indices <- unlist(col_indices_list)
   final_values <- unlist(values_list)

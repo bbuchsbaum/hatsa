@@ -62,40 +62,8 @@ solve_procrustes_rotation <- function(A_orig_subj_anchor, T_anchor_group) {
       return(diag(k_dim))
   }
 
-###<<<<<<< codex/create-procrustes_rotation_basic-helper
   R_i <- procrustes_rotation_basic(A_orig_subj_anchor, T_anchor_group)
 
-##=======
-  svd_M <- svd(M) 
-  U_svd <- svd_M$u
-  V_svd <- svd_M$v 
-  
-  R_raw <- V_svd %*% base::t(U_svd) 
-  
-  # Fast reflection fix using determinant sign from SVD
-  # sign(det(V) * det(U)) computes the sign of det(R_raw)
-  sign_det <- sign(det(svd_M$v) * det(svd_M$u))
-  
-  R_i <- R_raw
-  if (sign_det < 0) {
-      # Audit patch: Flip column corresponding to the *smallest* singular value
-      j_min_sv <- which.min(svd_M$d)
-      V_svd_corrected <- V_svd
-      V_svd_corrected[, j_min_sv] <- -V_svd_corrected[, j_min_sv]
-      R_i <- V_svd_corrected %*% base::t(U_svd)
-      
-      # Optional sanity check (can be removed in production)
-      # if (abs(det(R_i) - 1.0) > 1e-6) {
-      #   warning("Determinant correction failed?")
-      # }
-  }
-  
-  # The previous check for det != +/- 1 is removed as the determinant sign check is sufficient
-  # and handles the reflection properly. Issues with the matrix M itself
-  # (e.g. near singularity) might still lead to unstable rotations, but the 
-  # rotation matrix R_i returned will have det = +1.
-  
-###>>>>>>> main
   return(R_i)
 }
 

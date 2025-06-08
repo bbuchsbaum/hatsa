@@ -7,9 +7,9 @@
 #'   of conditions/features and `V_p` is the number of parcels. Each column
 #'   represents the activation profile for a parcel.
 #' @param parcel_names A character vector of length `V_p` specifying parcel names.
-#' @param k_conn_task_pos Integer, number of strongest positive connections to
+#' @param k_conn_task_pos Non-negative integer. Number of strongest positive connections to
 #'   retain per parcel during sparsification.
-#' @param k_conn_task_neg Integer, number of strongest negative connections to
+#' @param k_conn_task_neg Non-negative integer. Number of strongest negative connections to
 #'   retain per parcel during sparsification.
 #' @param similarity_method Character string or function. Specifies the method to
 #'   compute the initial `V_p x V_p` similarity matrix from `activation_matrix`.
@@ -34,6 +34,15 @@ compute_W_task_from_activations <- function(activation_matrix,
 
   V_p <- ncol(activation_matrix)
   C_n <- if (is.matrix(activation_matrix)) nrow(activation_matrix) else 0 # Number of conditions/rows
+
+  if (!is.numeric(k_conn_task_pos) || length(k_conn_task_pos) != 1 ||
+      k_conn_task_pos < 0 || k_conn_task_pos != round(k_conn_task_pos)) {
+    stop("`k_conn_task_pos` must be a non-negative integer.")
+  }
+  if (!is.numeric(k_conn_task_neg) || length(k_conn_task_neg) != 1 ||
+      k_conn_task_neg < 0 || k_conn_task_neg != round(k_conn_task_neg)) {
+    stop("`k_conn_task_neg` must be a non-negative integer.")
+  }
 
   if (V_p == 0) {
     # Ensure consistent return type (dgCMatrix) for empty graph
@@ -79,6 +88,95 @@ compute_W_task_from_activations <- function(activation_matrix,
   } else {
     stop("'similarity_method' must be 'pearson', 'spearman', or a function.")
   }
+## resolve please <<<<<<< codex/refactor-compute_w_task-methods-for-efficiency
+## =======
+
+  sim_matrix_dense[is.na(sim_matrix_dense)] <- 0
+  diag(sim_matrix_dense) <- 0
+
+  # 2. Sparsify
+  row_indices_list <- vector("list", V_p)
+  col_indices_list <- vector("list", V_p)
+  values_list <- vector("list", V_p)
+
+  if (k_conn_task_pos > 0 || k_conn_task_neg > 0) {
+    for (i in 1:V_p) {
+      node_sims <- sim_matrix_dense[i, ]
+      current_selected_indices <- integer(0)
+      current_selected_values <- numeric(0)
+
+      if (k_conn_task_pos > 0) {
+        pos_candidates_idx <- which(node_sims > 1e-9) 
+        if (length(pos_candidates_idx) > 0) {
+          pos_candidates_vals <- node_sims[pos_candidates_idx]
+          num_to_keep_pos <- min(k_conn_task_pos, length(pos_candidates_vals))
+          ordered_in_pos_group <- order(pos_candidates_vals, decreasing = TRUE)
+          top_pos_in_group_idx <- head(ordered_in_pos_group, num_to_keep_pos)
+
+          current_selected_indices <- c(current_selected_indices, pos_candidates_idx[top_pos_in_group_idx])
+          current_selected_values <- c(current_selected_values, pos_candidates_vals[top_pos_in_group_idx])
+        }
+      }
+
+      if (k_conn_task_neg > 0) {
+        neg_candidates_idx <- which(node_sims < -1e-9) 
+        if (length(neg_candidates_idx) > 0) {
+          neg_candidates_vals <- node_sims[neg_candidates_idx]
+          num_to_keep_neg <- min(k_conn_task_neg, length(neg_candidates_vals))
+          ordered_in_neg_group <- order(neg_candidates_vals, decreasing = FALSE)
+          top_neg_in_group_idx <- head(ordered_in_neg_group, num_to_keep_neg)
+
+          current_selected_indices <- c(current_selected_indices, neg_candidates_idx[top_neg_in_group_idx])
+          current_selected_values <- c(current_selected_values, neg_candidates_vals[top_neg_in_group_idx])
+        }
+      }
+
+      if(length(current_selected_indices) > 0) {
+          row_indices_list[[i]] <- rep(i, length(current_selected_indices))
+          col_indices_list[[i]] <- current_selected_indices
+          values_list[[i]] <- current_selected_values
+      }
+    }
+  }
+
+  final_row_indices <- unlist(row_indices_list[!sapply(row_indices_list, is.null)])
+  final_col_indices <- unlist(col_indices_list[!sapply(col_indices_list, is.null)])
+  final_values <- unlist(values_list[!sapply(values_list, is.null)])
+
+  W_dir_task <- if (length(final_row_indices) > 0) {
+    Matrix::sparseMatrix(
+      i = final_row_indices, j = final_col_indices, x = final_values,
+      dims = c(V_p, V_p), dimnames = list(parcel_names, parcel_names)
+    )
+  } else {
+    Matrix::Matrix(0, nrow=V_p, ncol=V_p, sparse=TRUE, dimnames = list(parcel_names, parcel_names))
+  }
+  W_dir_task <- Matrix::drop0(W_dir_task)
+
+  # 3. Symmetrize
+  W_dir_task_t <- Matrix::t(W_dir_task)
+  W_sum_task <- W_dir_task + W_dir_task_t
+  
+  W_den_task_val <- as.numeric((W_dir_task != 0) + (W_dir_task_t != 0))
+  W_den_task <- Matrix::Matrix(pmax(1, W_den_task_val), nrow=V_p, ncol=V_p, sparse=TRUE)
+
+  W_symmetric_raw_task <- W_sum_task / W_den_task
+  if (inherits(W_symmetric_raw_task, "sparseMatrix")) {
+    if (any(is.nan(W_symmetric_raw_task@x))) W_symmetric_raw_task@x[is.nan(W_symmetric_raw_task@x)] <- 0
+    if (any(is.infinite(W_symmetric_raw_task@x))) W_symmetric_raw_task@x[is.infinite(W_symmetric_raw_task@x)] <- 0
+  } else {
+    W_symmetric_raw_task[is.nan(W_symmetric_raw_task)] <- 0
+    W_symmetric_raw_task[is.infinite(W_symmetric_raw_task)] <- 0
+  }
+  W_symmetric_raw_task <- Matrix::drop0(W_symmetric_raw_task)
+  W_symmetric_task <- Matrix::forceSymmetric(W_symmetric_raw_task, uplo = "U")
+
+  # 4. Z-score non-zero edge weights
+  W_symmetric_task <- zscore_nonzero_sparse(W_symmetric_task)
+  W_task_i <- Matrix::drop0(W_symmetric_task)
+  
+  return(as(W_task_i, "dgCMatrix"))
+### resolve here >>>>>>> main
 }
 
 #' Compute Task-Based Parcel Similarity Graph (W_task) from Encoding Weights
@@ -90,9 +188,9 @@ compute_W_task_from_activations <- function(activation_matrix,
 #'   is the number of parcels and `N_features` is the number of encoding features.
 #'   Each row represents the encoding weight profile for a parcel.
 #' @param parcel_names A character vector of length `V_p` specifying parcel names.
-#' @param k_conn_task_pos Integer, number of strongest positive connections to
+#' @param k_conn_task_pos Non-negative integer. Number of strongest positive connections to
 #'   retain per parcel during sparsification.
-#' @param k_conn_task_neg Integer, number of strongest negative connections to
+#' @param k_conn_task_neg Non-negative integer. Number of strongest negative connections to
 #'   retain per parcel during sparsification.
 #' @param similarity_method Character string or function. Specifies the method to
 #'   compute the initial `V_p x V_p` similarity matrix.
@@ -115,6 +213,15 @@ compute_W_task_from_encoding <- function(encoding_weights_matrix,
 
   V_p <- nrow(encoding_weights_matrix) # Parcels are rows
   N_features <- ncol(encoding_weights_matrix)
+
+  if (!is.numeric(k_conn_task_pos) || length(k_conn_task_pos) != 1 ||
+      k_conn_task_pos < 0 || k_conn_task_pos != round(k_conn_task_pos)) {
+    stop("`k_conn_task_pos` must be a non-negative integer.")
+  }
+  if (!is.numeric(k_conn_task_neg) || length(k_conn_task_neg) != 1 ||
+      k_conn_task_neg < 0 || k_conn_task_neg != round(k_conn_task_neg)) {
+    stop("`k_conn_task_neg` must be a non-negative integer.")
+  }
 
   if (V_p == 0) {
     # Ensure consistent return type (dgCMatrix) for empty graph
@@ -152,6 +259,91 @@ compute_W_task_from_encoding <- function(encoding_weights_matrix,
   } else {
     stop("'similarity_method' must be 'pearson', 'spearman', or a function.")
   }
+## resolve please <<<<<<< codex/refactor-compute_w_task-methods-for-efficiency
+##=======
+
+  sim_matrix_dense[is.na(sim_matrix_dense)] <- 0
+  diag(sim_matrix_dense) <- 0
+
+  # 2. Sparsify
+  row_indices_list <- vector("list", V_p)
+  col_indices_list <- vector("list", V_p)
+  values_list <- vector("list", V_p)
+
+  if (k_conn_task_pos > 0 || k_conn_task_neg > 0) {
+    for (i in 1:V_p) {
+      node_sims <- sim_matrix_dense[i, ]
+      current_selected_indices <- integer(0)
+      current_selected_values <- numeric(0)
+
+      if (k_conn_task_pos > 0) {
+        pos_candidates_idx <- which(node_sims > 1e-9)
+        if (length(pos_candidates_idx) > 0) {
+          pos_candidates_vals <- node_sims[pos_candidates_idx]
+          num_to_keep_pos <- min(k_conn_task_pos, length(pos_candidates_vals))
+          ordered_in_pos_group <- order(pos_candidates_vals, decreasing = TRUE)
+          top_pos_in_group_idx <- head(ordered_in_pos_group, num_to_keep_pos)
+          current_selected_indices <- c(current_selected_indices, pos_candidates_idx[top_pos_in_group_idx])
+          current_selected_values <- c(current_selected_values, pos_candidates_vals[top_pos_in_group_idx])
+        }
+      }
+
+      if (k_conn_task_neg > 0) {
+        neg_candidates_idx <- which(node_sims < -1e-9)
+        if (length(neg_candidates_idx) > 0) {
+          neg_candidates_vals <- node_sims[neg_candidates_idx]
+          num_to_keep_neg <- min(k_conn_task_neg, length(neg_candidates_vals))
+          ordered_in_neg_group <- order(neg_candidates_vals, decreasing = FALSE)
+          top_neg_in_group_idx <- head(ordered_in_neg_group, num_to_keep_neg)
+          current_selected_indices <- c(current_selected_indices, neg_candidates_idx[top_neg_in_group_idx])
+          current_selected_values <- c(current_selected_values, neg_candidates_vals[top_neg_in_group_idx])
+        }
+      }
+
+      if(length(current_selected_indices) > 0) {
+          row_indices_list[[i]] <- rep(i, length(current_selected_indices))
+          col_indices_list[[i]] <- current_selected_indices
+          values_list[[i]] <- current_selected_values
+      }
+    }
+  }
+
+  final_row_indices <- unlist(row_indices_list[!sapply(row_indices_list, is.null)])
+  final_col_indices <- unlist(col_indices_list[!sapply(col_indices_list, is.null)])
+  final_values <- unlist(values_list[!sapply(values_list, is.null)])
+
+  W_dir_task <- if (length(final_row_indices) > 0) {
+    Matrix::sparseMatrix(
+      i = final_row_indices, j = final_col_indices, x = final_values,
+      dims = c(V_p, V_p), dimnames = list(parcel_names, parcel_names)
+    )
+  } else {
+    Matrix::Matrix(0, nrow=V_p, ncol=V_p, sparse=TRUE, dimnames = list(parcel_names, parcel_names))
+  }
+  W_dir_task <- Matrix::drop0(W_dir_task)
+
+  # 3. Symmetrize
+  W_dir_task_t <- Matrix::t(W_dir_task)
+  W_sum_task <- W_dir_task + W_dir_task_t
+  W_den_task_val <- as.numeric((W_dir_task != 0) + (W_dir_task_t != 0))
+  W_den_task <- Matrix::Matrix(pmax(1, W_den_task_val), nrow=V_p, ncol=V_p, sparse=TRUE)
+  W_symmetric_raw_task <- W_sum_task / W_den_task
+  if (inherits(W_symmetric_raw_task, "sparseMatrix")) {
+    if (any(is.nan(W_symmetric_raw_task@x))) W_symmetric_raw_task@x[is.nan(W_symmetric_raw_task@x)] <- 0
+    if (any(is.infinite(W_symmetric_raw_task@x))) W_symmetric_raw_task@x[is.infinite(W_symmetric_raw_task@x)] <- 0
+  } else {
+    W_symmetric_raw_task[is.nan(W_symmetric_raw_task)] <- 0
+    W_symmetric_raw_task[is.infinite(W_symmetric_raw_task)] <- 0
+  }
+  W_symmetric_raw_task <- Matrix::drop0(W_symmetric_raw_task)
+  W_symmetric_task <- Matrix::forceSymmetric(W_symmetric_raw_task, uplo = "U")
+
+  # 4. Z-score non-zero edge weights
+  W_symmetric_task <- zscore_nonzero_sparse(W_symmetric_task)
+  W_task_i <- Matrix::drop0(W_symmetric_task)
+  
+  return(as(W_task_i, "dgCMatrix"))
+### resolve please >>>>>>> main
 }
 
 #' Compute Correlation Between Two Sparse Graphs
@@ -190,59 +382,48 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
   summary2 <- Matrix::summary(W_graph2)
 
   # Filter for upper triangle (i < j)
-  # Using base subset for potential slight speed advantage on large summaries
-  edges1 <- subset(summary1, summary1$i < summary1$j, select = c("i", "j", "x"))
-  edges2 <- subset(summary2, summary2$i < summary2$j, select = c("i", "j", "x"))
+  edges1 <- summary1[summary1$i < summary1$j, , drop = FALSE]
+  edges2 <- summary2[summary2$i < summary2$j, , drop = FALSE]
 
-  # Rename columns for merging
-  names(edges1) <- c("row", "col", "w1")
-  names(edges2) <- c("row", "col", "w2")
-
-  # Merge based on row and col to get the union of edges (full outer join)
-  # Handle empty edge cases
   if (nrow(edges1) == 0 && nrow(edges2) == 0) {
-      return(NA_real_) # No edges in either graph
-  } else if (nrow(edges1) == 0) {
-      merged_edges <- data.frame(row = edges2$row, col = edges2$col, w1 = 0, w2 = edges2$w2)
-  } else if (nrow(edges2) == 0) {
-      merged_edges <- data.frame(row = edges1$row, col = edges1$col, w1 = edges1$w1, w2 = 0)
-  } else {
-       merged_edges <- merge(edges1, edges2, by = c("row", "col"), all = TRUE)
+    return(NA_real_)
   }
 
+  # Vectorised union using matching on edge indices
+  idx1 <- paste(edges1$i, edges1$j, sep = "-")
+  idx2 <- paste(edges2$i, edges2$j, sep = "-")
+  all_idx <- union(idx1, idx2)
+  pos1 <- match(all_idx, idx1)
+  pos2 <- match(all_idx, idx2)
+  w1 <- ifelse(is.na(pos1), 0, edges1$x[pos1])
+  w2 <- ifelse(is.na(pos2), 0, edges2$x[pos2])
 
   # Sample if needed
-  num_edges <- nrow(merged_edges)
+  num_edges <- length(all_idx)
   if (num_edges > max_edges && is.finite(max_edges) && max_edges > 0) {
     if (interactive()) {
-        message(sprintf("Sampling %d edges from union of %d for correlation calculation.", max_edges, num_edges))
+      message(sprintf("Sampling %d edges from union of %d for correlation calculation.", max_edges, num_edges))
     }
     sample_indices <- sample.int(num_edges, size = max_edges, replace = FALSE)
-    merged_edges <- merged_edges[sample_indices, ]
+    w1 <- w1[sample_indices]
+    w2 <- w2[sample_indices]
+    num_edges <- max_edges
   }
 
-  # Fill missing values (NAs introduced by the full outer join) with 0
-  merged_edges$w1[is.na(merged_edges$w1)] <- 0
-  merged_edges$w2[is.na(merged_edges$w2)] <- 0
-
-  # Compute Spearman correlation
-  if (nrow(merged_edges) < 2) {
+  if (num_edges < 2) {
     warning("Too few edges (< 2) in the sampled union to compute correlation. Returning NA.")
     return(NA_real_)
   }
 
   # Check for zero variance before attempting correlation
-  sd1 <- stats::sd(merged_edges$w1)
-  sd2 <- stats::sd(merged_edges$w2)
+  sd1 <- stats::sd(w1)
+  sd2 <- stats::sd(w2)
 
-  # Handle cases where correlation is undefined
-  # stats::cor returns NA in these cases already, but adding a warning is helpful.
   if (is.na(sd1) || sd1 == 0 || is.na(sd2) || sd2 == 0) {
     warning("Zero variance in edge weights for at least one graph in the sampled union set. Correlation is undefined (NA).")
-    # Let stats::cor return NA
   }
 
-  rho <- stats::cor(merged_edges$w1, merged_edges$w2, method = "spearman", use = "complete.obs") # use="complete.obs" shouldn't be needed after NA fill
+  rho <- stats::cor(w1, w2, method = "spearman", use = "complete.obs")
 
   return(rho)
 }
@@ -464,9 +645,9 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
     return(Matrix::Matrix(0, 0, 0, sparse = TRUE, dimnames = list(character(0), character(0))))
   }
 
-  # Ensure input is a matrix (might be sparse or dense)
-  input_matrix_dense <- as.matrix(input_matrix)
-  diag(input_matrix_dense) <- 0 # Ensure diagonal is zero
+  # Work with a sparse matrix directly to avoid unnecessary densification
+  input_matrix <- as(input_matrix, "dgCMatrix")
+  diag(input_matrix) <- 0 # Ensure diagonal is zero
 
   row_indices_list <- vector("list", V_p)
   col_indices_list <- vector("list", V_p)
@@ -474,7 +655,7 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
 
   if (k_nn > 0) {
     for (i in 1:V_p) {
-      node_vals <- input_matrix_dense[i, ]
+      node_vals <- as.numeric(input_matrix[i, ])
       selected_indices <- integer(0)
       selected_values <- numeric(0)
 
@@ -539,27 +720,8 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
   W_sym <- Matrix::forceSymmetric(W_sym_raw, uplo = "U")
 
   # Z-score
-  if (length(W_sym@x) > 0) {
-    non_zero_vals <- W_sym@x
-    mean_val <- mean(non_zero_vals)
-    sd_val <- stats::sd(non_zero_vals)
-    if (is.na(sd_val) || sd_val < 1e-10) {
-      W_sym@x <- rep(0, length(non_zero_vals))
-    } else {
-      # Apply z-scoring
-      z_scored_vals <- (non_zero_vals - mean_val) / sd_val
-      # Verify the standard deviation is exactly 1.0 (for test precision)
-      actual_sd <- stats::sd(z_scored_vals)
-      if (!is.na(actual_sd) && actual_sd > 0) {
-        # Fine-tune to ensure sd is exactly 1.0
-        z_scored_vals <- z_scored_vals / actual_sd
-      }
-      W_sym@x <- z_scored_vals
-    }
-    W_final <- Matrix::drop0(W_sym)
-  } else {
-    W_final <- W_sym
-  }
+  W_sym <- zscore_nonzero_sparse(W_sym)
+  W_final <- Matrix::drop0(W_sym)
 
   return(as(W_final, "dgCMatrix"))
 }
@@ -647,7 +809,12 @@ residualize_graph_on_subspace <- function(W_graph_to_residualize,
   message_stage("Computing residual graph projection...", interactive_only = TRUE)
   W_B <- W_graph_to_residualize
   U <- U_ortho # Use orthonormalized version
-  
+
+  dense_mem_gb <- (V_p * V_p * 8) / (1024^3)
+  if (dense_mem_gb > 0.5) {
+    warning(sprintf("Residualization will create ~%.2f GB dense matrices; ensure sufficient memory.", dense_mem_gb))
+  }
+
   # Calculate intermediate terms (sparse-dense and dense-dense products)
   # UT_WB = t(U) %*% W_B  (k_proj x V_p, result is dense)
   UT_WB <- Matrix::crossprod(U, W_B)
@@ -664,12 +831,9 @@ residualize_graph_on_subspace <- function(W_graph_to_residualize,
   # Term3 = U %*% UT_WB_U %*% t(U) (V_p x V_p, dense)
   Term3 <- U %*% UT_WB_U %*% Matrix::t(U)
   
-  # Compute residual W_res (potentially dense)
-  # Ensure W_B is treated as dense for subtraction if needed
-  if (!is(W_B,"matrix")) W_B_dense <- as.matrix(W_B)
-  else W_B_dense <- W_B
-  
-  W_res_dense <- W_B_dense - Term1 - Term2 + Term3
+  # Compute residual W_res (dense). Sparse input will be promoted automatically.
+  W_res_dense <- -Term1 - Term2 + Term3
+  W_res_dense <- W_res_dense + W_B
   message_stage("Symmetrizing residual graph...", interactive_only = TRUE)
 
   # 3. Symmetrize W_res

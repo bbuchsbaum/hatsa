@@ -11,7 +11,6 @@ task_hatsa(
   spectral_rank_k = 40,
   task_data_list = NULL,
   task_method = c("lambda_blend", "gev_patch", "core_hatsa"),
-  graph_mode = c("schur_complement", "anchor_block", "full_graph"),
   opts = task_hatsa_opts(),
   verbose = TRUE,
   ...
@@ -66,8 +65,6 @@ processing. Default is NULL.}
 \item{task_method}{Character string: `"lambda_blend"`, `"gev_patch"`, or `"core_hatsa"`. 
 Default: `"lambda_blend"`.}
 
-\item{graph_mode}{Character string: `"schur_complement"`, `"anchor_block"`, or `"full_graph"`.
-Determines which graph construction approach to use. Default: `"schur_complement"`.}
 
 \item{opts}{List of advanced options created by `task_hatsa_opts()`.}
 

@@ -183,3 +183,26 @@ message_stage <- function(message_text, verbose = TRUE, interactive_only = FALSE
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 
+
+#' Safely evaluate an expression with warning on error
+#'
+#' Evaluates `expr` and returns its result. If an error occurs, a formatted
+#' warning is issued and `default` is returned.
+#'
+#' @param expr Expression to evaluate.
+#' @param msg_fmt A format string passed to `sprintf`. The caught error message
+#'   will be inserted via `%s`.
+#' @param default Value to return if evaluation fails. Defaults to `NULL`.
+#' @return The result of `expr`, or `default` on error.
+#' @keywords internal
+safe_wrapper <- function(expr, msg_fmt, default = NULL) {
+  expr_sub <- substitute(expr)
+  tryCatch(
+    eval(expr_sub, parent.frame()),
+    error = function(e) {
+      warning(sprintf(msg_fmt, e$message))
+      default
+    }
+  )
+}
+

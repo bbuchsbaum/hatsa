@@ -134,6 +134,11 @@ test_that("compute_voxel_basis_nystrom: basic functionality and dimensions", {
     voxel_coords, parcel_coords, parcel_comps$U_orig_parcel, parcel_comps$Lambda_orig_parcel,
     n_nearest_parcels = 0
   ))
+  # Error when n_nearest_parcels exceeds number of parcels
+  expect_error(compute_voxel_basis_nystrom(
+    voxel_coords, parcel_coords, parcel_comps$U_orig_parcel, parcel_comps$Lambda_orig_parcel,
+    n_nearest_parcels = V_p + 1
+  ))
   
   # Error for invalid kernel_sigma
   expect_error(compute_voxel_basis_nystrom(
@@ -239,6 +244,63 @@ test_that("project_voxels.hatsa_projector: basic functionality and dimensions", 
   expect_true(is.na(res_bad_ts[[1]][1,1])) # Check if it was NA-ed out
   if (length(res_bad_ts) > 1) expect_false(is.na(res_bad_ts[[2]][1,1])) # Check other subjects are fine
 
+})
+
+test_that("project_voxels works with precomputed W_vox_parc", {
+  V_p_fit <- 15
+  N_subjects_fit <- 2
+  k_fit <- 3
+  V_v_proj <- 40
+
+  fit_parcel_data <- .generate_mock_subject_data_parcels(N_subjects_fit, V_p_fit)
+  fit_params <- .get_default_hatsa_params_for_voxel_test(V_p_fit, k_fit)
+  hatsa_fitted_obj <- suppressMessages(run_hatsa_core(
+    subject_data_list = fit_parcel_data,
+    anchor_indices = fit_params$anchor_indices,
+    spectral_rank_k = fit_params$spectral_rank_k,
+    k_conn_pos = fit_params$k_conn_pos,
+    k_conn_neg = fit_params$k_conn_neg,
+    n_refine = fit_params$n_refine
+  ))
+
+  voxel_ts_list <- .generate_mock_voxel_ts_list(N_subjects_fit, V_v_proj)
+  voxel_coords_proj <- .generate_mock_coords(V_v_proj)
+  parcel_coords_fit <- .generate_mock_coords(V_p_fit)
+
+  # Precompute W_vox_parc similarly to compute_voxel_basis_nystrom
+  nn_res <- RANN::nn2(data = parcel_coords_fit, query = voxel_coords_proj, k = 3, treetype = "kd")
+  first_dists <- sqrt(nn_res$nn.dists[, 1])
+  med_dist <- median(first_dists, na.rm = TRUE)
+  sigma_eff <- if (is.finite(med_dist) && med_dist > 1e-6) med_dist / sqrt(2) else 1.0
+  sims <- exp(-nn_res$nn.dists / (2 * sigma_eff^2))
+  W_pre <- Matrix::as(Matrix::sparseMatrix(
+    i = rep(1:nrow(voxel_coords_proj), each = 3),
+    j = as.vector(t(nn_res$nn.idx)),
+    x = as.vector(t(sims)),
+    dims = c(nrow(voxel_coords_proj), V_p_fit),
+    repr = "T", giveCsparse = FALSE
+  ), "dgCMatrix")
+
+  res_default <- suppressMessages(project_voxels(
+    object = hatsa_fitted_obj,
+    voxel_timeseries_list = voxel_ts_list,
+    voxel_coords = voxel_coords_proj,
+    parcel_coords = parcel_coords_fit,
+    n_nearest_parcels = 3,
+    kernel_sigma = "auto"
+  ))
+
+  res_precomp <- suppressMessages(project_voxels(
+    object = hatsa_fitted_obj,
+    voxel_timeseries_list = voxel_ts_list,
+    voxel_coords = voxel_coords_proj,
+    parcel_coords = parcel_coords_fit,
+    n_nearest_parcels = 3,
+    kernel_sigma = "auto",
+    W_vox_parc = W_pre
+  ))
+
+  expect_equal(res_precomp, res_default)
 })
 
 # Further tests for project_voxels could include:
