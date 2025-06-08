@@ -24,9 +24,9 @@ solve_procrustes_rotation <- function(A_orig_subj_anchor, T_anchor_group) {
   
   R_raw <- V_svd %*% base::t(U_svd) 
   
-  # Audit patch: Fast reflection fix using QR decomp sign check
-  # More robust than det() for large k and handles reflection correctly
-  sign_det <- sign(prod(diag(qr(R_raw)$qr))) # O(k^2) check
+  # Fast reflection fix using determinant sign from SVD
+  # sign(det(V) * det(U)) computes the sign of det(R_raw)
+  sign_det <- sign(det(svd_M$v) * det(svd_M$u))
   
   R_i <- R_raw
   if (sign_det < 0) {
@@ -42,8 +42,8 @@ solve_procrustes_rotation <- function(A_orig_subj_anchor, T_anchor_group) {
       # }
   }
   
-  # The previous check for det != +/- 1 is removed as the QR sign check is sufficient
-  # and handles the reflection properly. Issues with the matrix M itself 
+  # The previous check for det != +/- 1 is removed as the determinant sign check is sufficient
+  # and handles the reflection properly. Issues with the matrix M itself
   # (e.g. near singularity) might still lead to unstable rotations, but the 
   # rotation matrix R_i returned will have det = +1.
   
