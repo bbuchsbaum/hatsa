@@ -686,8 +686,6 @@ summary.hatsa_projector <- function(object, ...,
   return(summary_info)
 }
 
-# Define %||% operator if it doesn't exist
-`%||%` <- function(x, y) if (is.null(x)) y else x
 
 #' Print method for summary.hatsa_projector objects
 #'

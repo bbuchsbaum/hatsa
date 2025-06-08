@@ -404,6 +404,3 @@ perform_geometric_gpa_refinement <- function(A_originals_list,
               T_anchor_final = T_template, 
               R_bar_final = R_bar_final))
 }
-
-# Helper for Frechet mean options default (borrowed from purrr::`%||%`)
-`%||%` <- function(x, y) if (is.null(x)) y else x
