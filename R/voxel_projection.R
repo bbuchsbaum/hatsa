@@ -77,7 +77,7 @@ compute_voxel_basis_nystrom <- function(voxel_coords, parcel_coords,
   if (V_p == 0 || k == 0) return(matrix(0, nrow = V_v, ncol = k))
   if (nrow(U_orig_parcel) != V_p) stop("U_orig_parcel row count must match parcel_coords row count.")
   if (length(Lambda_orig_parcel) != k) stop("Length of Lambda_orig_parcel must match column count of U_orig_parcel (k).")
-  if (any(Lambda_orig_parcel <= 0) && interactive()) {
+  if (any(Lambda_orig_parcel <= 0)) {
       warning("Some Lambda_orig_parcel are <= 0. This might cause issues with inversion. Applying floor.")
   }
 
@@ -261,9 +261,11 @@ compute_voxel_basis_nystrom <- function(voxel_coords, parcel_coords,
       }
   }
 
-  if (length(warnings_found) > 0 && interactive()) {
-    message("Coordinate system validation found potential issues (run non-interactively to suppress):")
-    for(w in warnings_found) message(paste("  -", w))
+  if (length(warnings_found) > 0) {
+    warning(paste(c(
+      "Coordinate system validation found potential issues:",
+      paste("  -", warnings_found)
+    ), collapse = "\n"), call. = FALSE)
   }
   return(invisible(NULL))
 }
