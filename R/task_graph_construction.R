@@ -170,27 +170,8 @@ compute_W_task_from_activations <- function(activation_matrix,
   W_symmetric_task <- Matrix::forceSymmetric(W_symmetric_raw_task, uplo = "U")
 
   # 4. Z-score non-zero edge weights
-  if (length(W_symmetric_task@x) > 0) { 
-    non_zero_vals <- W_symmetric_task@x
-    mean_val <- mean(non_zero_vals)
-    sd_val <- stats::sd(non_zero_vals)
-    if (is.na(sd_val) || sd_val < 1e-10) { 
-      W_symmetric_task@x <- rep(0, length(non_zero_vals))
-    } else {
-      # Apply z-scoring
-      z_scored_vals <- (non_zero_vals - mean_val) / sd_val
-      # Verify the standard deviation is exactly 1.0 (for test precision)
-      actual_sd <- stats::sd(z_scored_vals)
-      if (!is.na(actual_sd) && actual_sd > 0) {
-        # Fine-tune to ensure sd is exactly 1.0
-        z_scored_vals <- z_scored_vals / actual_sd
-      }
-      W_symmetric_task@x <- z_scored_vals
-    }
-    W_task_i <- Matrix::drop0(W_symmetric_task)
-  } else {
-    W_task_i <- W_symmetric_task 
-  }
+  W_symmetric_task <- zscore_nonzero_sparse(W_symmetric_task)
+  W_task_i <- Matrix::drop0(W_symmetric_task)
   
   return(as(W_task_i, "dgCMatrix"))
 }
@@ -345,27 +326,8 @@ compute_W_task_from_encoding <- function(encoding_weights_matrix,
   W_symmetric_task <- Matrix::forceSymmetric(W_symmetric_raw_task, uplo = "U")
 
   # 4. Z-score non-zero edge weights
-  if (length(W_symmetric_task@x) > 0) {
-    non_zero_vals <- W_symmetric_task@x
-    mean_val <- mean(non_zero_vals)
-    sd_val <- stats::sd(non_zero_vals)
-    if (is.na(sd_val) || sd_val < 1e-10) {
-      W_symmetric_task@x <- rep(0, length(non_zero_vals))
-    } else {
-      # Apply z-scoring
-      z_scored_vals <- (non_zero_vals - mean_val) / sd_val
-      # Verify the standard deviation is exactly 1.0 (for test precision)
-      actual_sd <- stats::sd(z_scored_vals)
-      if (!is.na(actual_sd) && actual_sd > 0) {
-        # Fine-tune to ensure sd is exactly 1.0
-        z_scored_vals <- z_scored_vals / actual_sd
-      }
-      W_symmetric_task@x <- z_scored_vals
-    }
-    W_task_i <- Matrix::drop0(W_symmetric_task)
-  } else {
-    W_task_i <- W_symmetric_task
-  }
+  W_symmetric_task <- zscore_nonzero_sparse(W_symmetric_task)
+  W_task_i <- Matrix::drop0(W_symmetric_task)
   
   return(as(W_task_i, "dgCMatrix"))
 }
@@ -548,27 +510,8 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
   W_sym <- Matrix::forceSymmetric(W_sym_raw, uplo = "U")
 
   # Z-score
-  if (length(W_sym@x) > 0) {
-    non_zero_vals <- W_sym@x
-    mean_val <- mean(non_zero_vals)
-    sd_val <- stats::sd(non_zero_vals)
-    if (is.na(sd_val) || sd_val < 1e-10) {
-      W_sym@x <- rep(0, length(non_zero_vals))
-    } else {
-      # Apply z-scoring
-      z_scored_vals <- (non_zero_vals - mean_val) / sd_val
-      # Verify the standard deviation is exactly 1.0 (for test precision)
-      actual_sd <- stats::sd(z_scored_vals)
-      if (!is.na(actual_sd) && actual_sd > 0) {
-        # Fine-tune to ensure sd is exactly 1.0
-        z_scored_vals <- z_scored_vals / actual_sd
-      }
-      W_sym@x <- z_scored_vals
-    }
-    W_final <- Matrix::drop0(W_sym)
-  } else {
-    W_final <- W_sym
-  }
+  W_sym <- zscore_nonzero_sparse(W_sym)
+  W_final <- Matrix::drop0(W_sym)
 
   return(as(W_final, "dgCMatrix"))
 }
