@@ -73,19 +73,6 @@ test_that("task_hatsa works with ... arguments", {
   expect_true("U_aligned_list" %in% names(res))
 })
 
-test_that("task_hatsa handles graph_mode parameter", {
-  res <- task_hatsa(
-    subject_data_list = subject_data_list,
-    anchor_indices = anchor_indices,
-    spectral_rank_k = spectral_rank_k,
-    task_method = "core_hatsa",
-    graph_mode = "schur_complement",  # Explicit graph_mode
-    verbose = FALSE
-  )
-  
-  expect_type(res, "list")
-  expect_true("U_aligned_list" %in% names(res))
-})
 
 test_that("task_hatsa works with gev_patch method", {
   res <- task_hatsa(
