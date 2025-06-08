@@ -2,7 +2,8 @@
 #'
 #' Calculates the sparse connectivity graph for a single subject.
 #' Steps:
-#' 1. Compute Pearson correlation matrix from `X_subject` (with guard for large V_p).
+#' 1. Compute pairwise Pearson correlations using a memory-efficient
+#'    cross-product approach that avoids constructing a dense `V_p` \times `V_p` matrix.
 #' 2. Identify and mask zero-variance parcels.
 #' 3. Sparsify: For each parcel, identify indices of `k_conn_pos` strongest
 #'    positive and `k_conn_neg` strongest negative correlations, using partial sort.
@@ -33,28 +34,15 @@ compute_subject_connectivity_graph_sparse <- function(X_subject, parcel_names,
     message("Note: DTW is not yet implemented. Proceeding with standard correlations.")
   }
   
-  if (V_p^2 > 1e8) { # Audit suggestion: Guard for large V_p dense correlation
-      stop(sprintf("V_p (%d) is too large (%d x %d) for dense correlation matrix. Consider alternative methods.", V_p, V_p, V_p))
-  }
-
+  T_i <- nrow(X_subject)
+  col_means <- colMeans(X_subject, na.rm = TRUE)
   col_sds <- apply(X_subject, 2, stats::sd, na.rm = TRUE)
   zero_var_indices <- which(col_sds == 0)
   if (length(zero_var_indices) > 0 && interactive()) {
     message(sprintf("Found %d parcel(s) with zero variance. These will be excluded from k-NN selection and their correlations are 0.", length(zero_var_indices)))
   }
   
-  # Use suppressWarnings to handle "the standard deviation is zero" warnings from cor()
-  corr_matrix_dense <- suppressWarnings(stats::cor(X_subject, use = "pairwise.complete.obs"))
-  corr_matrix_dense[is.na(corr_matrix_dense)] <- 0 
-  diag(corr_matrix_dense) <- 0 
-  
-  # Mask correlations involving zero-variance parcels directly in the dense matrix before selection
-  if (length(zero_var_indices) > 0) {
-      corr_matrix_dense[zero_var_indices, ] <- 0
-      corr_matrix_dense[, zero_var_indices] <- 0
-  }
-  # Additional safeguard for any other NaNs/Infs that might have arisen from cor()
-  corr_matrix_dense[!is.finite(corr_matrix_dense)] <- 0
+  X_centered <- sweep(X_subject, 2, col_means, "-")
 
   row_indices_list <- vector("list", V_p)
   col_indices_list <- vector("list", V_p)
@@ -72,8 +60,14 @@ compute_subject_connectivity_graph_sparse <- function(X_subject, parcel_names,
           next
       }
       
-      node_corrs_full_row <- corr_matrix_dense[i, ]
-      # Consider only selectable parcels for finding top-k connections
+      cov_vec <- as.numeric(crossprod(X_centered, X_centered[, i])) / (T_i - 1)
+      node_corrs_full_row <- cov_vec / (col_sds * col_sds[i])
+      node_corrs_full_row[!is.finite(node_corrs_full_row)] <- 0
+      node_corrs_full_row[i] <- 0
+      if (length(zero_var_indices) > 0) {
+          node_corrs_full_row[zero_var_indices] <- 0
+      }
+
       node_corrs_candidates <- node_corrs_full_row[selectable_parcel_indices]
       
       current_selected_indices_in_selectable <- integer(0)

@@ -31,7 +31,8 @@ A sparse symmetric `Matrix::dgCMatrix` of size `V_p x V_p`
 \description{
 Calculates the sparse connectivity graph for a single subject.
 Steps:
-1. Compute Pearson correlation matrix from `X_subject` (with guard for large V_p).
+1. Compute pairwise Pearson correlations using a memory-efficient cross-product
+   approach that avoids creating a dense `V_p \times V_p` matrix.
 2. Identify and mask zero-variance parcels.
 3. Sparsify: For each parcel, identify indices of `k_conn_pos` strongest
    positive and `k_conn_neg` strongest negative correlations, using partial sort.
