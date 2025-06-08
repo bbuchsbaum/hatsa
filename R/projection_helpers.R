@@ -135,13 +135,36 @@ project_features_to_spectral_space <- function(feature_matrix, U_basis,
   UtU <- NULL # Define UtU outside so it's available for qr.solve if needed
 
   if (assume_orthonormal) {
-    is_orthonormal <- TRUE
+    if (k_dims_basis > V_p_basis) {
+      stop(sprintf(
+        "assume_orthonormal = TRUE but k_dims_basis (%d) > V_p_basis (%d).",
+        k_dims_basis, V_p_basis
+      ))
+    }
+    UtU <- crossprod(U_basis)
+    Id_k <- diag(k_dims_basis)
+    max_dev <- max(abs(UtU - Id_k))
+    if (max_dev < (tol_orthonormal * k_dims_basis)) {
+      is_orthonormal <- TRUE
+    } else {
+      warning(
+        sprintf(
+          "assume_orthonormal = TRUE but U_basis not orthonormal; max deviation %g exceeds tolerance.",
+          max_dev
+        )
+      )
+      # Proceed treating U_basis as non-orthonormal using computed UtU
+    }
   } else {
     # Check U_basis rank first
     qr_U <- qr(U_basis)
     if (qr_U$rank < k_dims_basis) {
-        warning(sprintf("U_basis appears rank deficient (rank %d / %d dimensions). Projection results may be unreliable or reflect a lower-dimensional space.",
-                        qr_U$rank, k_dims_basis))
+      warning(
+        sprintf(
+          "U_basis appears rank deficient (rank %d / %d dimensions). Projection results may be unreliable or reflect a lower-dimensional space.",
+          qr_U$rank, k_dims_basis
+        )
+      )
     }
     UtU <- crossprod(U_basis)
     Id_k <- diag(k_dims_basis)
