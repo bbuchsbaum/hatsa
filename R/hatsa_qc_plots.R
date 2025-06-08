@@ -362,20 +362,17 @@ plot_mds_spd_subjects <- function(projector_object,
     return(NULL)
   }
 
-  if (verbose) message_stage(sprintf("Computing Riemannian distance matrix (type: %s)...", spd_representation_type))
+  if (verbose) {
+    message_stage(
+      sprintf("Computing Riemannian distance matrix (type: %s)...", spd_representation_type)
+    )
+  }
 
-  dist_args <- dist_mat_options
-  dist_args$object <- projector_object
-  dist_args$type <- spd_representation_type
-  # Ensure verbose from main function is passed if not in dist_mat_options
-  if (is.null(dist_args$verbose)) dist_args$verbose <- verbose 
-
-  dist_matrix_full <- tryCatch(
-    do.call(hatsa::riemannian_distance_matrix_spd, dist_args),
-    error = function(e) {
-      warning(sprintf("Riemannian distance matrix computation failed: %s", e$message))
-      NULL
-    }
+  dist_matrix_full <- compute_mds_distance_matrix(
+    projector_object,
+    spd_representation_type,
+    dist_mat_options,
+    verbose = verbose
   )
 
   if (is.null(dist_matrix_full)) {
@@ -410,43 +407,20 @@ plot_mds_spd_subjects <- function(projector_object,
   # Our riemannian_distance_matrix_spd should return this.
   # However, if there are any remaining NAs after subsetting (should not happen if subsetting is correct),
   # cmdscale will fail. We check for this implicitly by tryCatch.
-  mds_fit <- tryCatch(
-    stats::cmdscale(as.dist(dist_matrix_valid), k = k_mds, eig = TRUE, add = cmdscale_add),
-    error = function(e) {
-      warning(sprintf("MDS computation (cmdscale) failed: %s", e$message))
-      NULL
-    }
-  )
+  mds_fit <- run_cmdscale_safe(dist_matrix_valid, k_mds = k_mds, add = cmdscale_add)
 
   if (is.null(mds_fit)) {
     return(list(plot = NULL, mds_results = NULL, distance_matrix = dist_matrix_full, valid_subject_indices = valid_subject_indices))
   }
 
-  mds_coords <- as.data.frame(mds_fit$points)
-  colnames(mds_coords) <- paste0("Dim", 1:ncol(mds_coords))
-  mds_coords$subject_idx_original <- valid_subject_indices # Store original index
-
-  # Prepare plotting data by merging with subject_info if provided
-  plot_df <- mds_coords
-  plot_df$subject_label_plot <- paste0("S", plot_df$subject_idx_original) # Default labels
-
-  if (!is.null(subject_info) && inherits(subject_info, "data.frame")) {
-      if(nrow(subject_info) == N_total_subjects) {
-          subject_info_valid <- subject_info[valid_subjects_mask, , drop = FALSE]
-          subject_info_valid$subject_idx_original <- valid_subject_indices # for merging with mds_coords
-          
-          # Attempt to merge. If subject_info has rownames that are subject IDs from dist_matrix,
-          # and dist_matrix had interpretable rownames/colnames, this logic would need adjustment.
-          # Current riemannian_distance_matrix_spd aims for 1:N_subjects in rownames/colnames.
-          plot_df <- merge(plot_df, subject_info_valid, by = "subject_idx_original", all.x = TRUE)
-
-          if ("subject_label" %in% colnames(plot_df) && plot_labels) {
-             plot_df$subject_label_plot <- plot_df$subject_label
-          }
-      } else {
-          warning("`subject_info` provided but row count does not match N_subjects. It will be ignored for merging specifics, but used for column name checks.")
-      }
-  }
+  plot_df <- prepare_mds_plot_df(
+    mds_fit,
+    valid_subject_indices,
+    valid_subjects_mask,
+    N_total_subjects,
+    subject_info = subject_info,
+    plot_labels = plot_labels
+  )
   
   # Set up aesthetics
   plot_aes <- ggplot2::aes(x = Dim1, y = Dim2)
