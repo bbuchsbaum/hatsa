@@ -364,19 +364,19 @@ process_single_subject <- function(subject_idx, subj_data_i, task_data_i, args) 
     }
     
     # --- Compute W_conn and L_conn ---
-    W_conn_i <- tryCatch({
-        compute_subject_connectivity_graph_sparse(subj_data_i, parcel_names, k_conn_pos, k_conn_neg)
-    }, error = function(e) {
-        warning(sprintf("Error computing W_conn for subject %d: %s. Skipping subject.", subject_idx, e$message)); NULL
-    })
+    W_conn_i <- safe_wrapper(
+        compute_subject_connectivity_graph_sparse(subj_data_i, parcel_names, k_conn_pos, k_conn_neg),
+        sprintf("Error computing W_conn for subject %d: %%s. Skipping subject.", subject_idx),
+        default = NULL
+    )
     if (is.null(W_conn_i)) return(result) # Return initialized result list (all NULLs essentially)
     result$W_conn <- W_conn_i
     
-    L_conn_i <- tryCatch({
-        compute_graph_laplacian_sparse(W_conn_i, alpha = args$alpha_laplacian, degree_type = args$degree_type_laplacian)
-    }, error = function(e) {
-        warning(sprintf("Error computing L_conn for subject %d: %s. Skipping subject.", subject_idx, e$message)); NULL
-    })
+    L_conn_i <- safe_wrapper(
+        compute_graph_laplacian_sparse(W_conn_i, alpha = args$alpha_laplacian, degree_type = args$degree_type_laplacian),
+        sprintf("Error computing L_conn for subject %d: %%s. Skipping subject.", subject_idx),
+        default = NULL
+    )
     if (is.null(L_conn_i)) return(result)
     result$L_conn <- L_conn_i
     
@@ -443,13 +443,13 @@ compute_task_matrices <- function(subject_idx, task_data_i, args, W_conn_i, L_co
     }
     
     # Compute W_task_raw
-    W_task_i_raw <- tryCatch({
+    W_task_i_raw <- safe_wrapper(
         W_task_helper_func(task_data_i, parcel_names = parcel_names,
                           k_conn_task_pos = k_conn_task_pos, k_conn_task_neg = k_conn_task_neg,
-                          similarity_method = similarity_method_task)
-    }, error = function(e) {
-        warning(sprintf("Error computing W_task_raw for subject %d: %s.", subject_idx, e$message)); NULL
-    })
+                          similarity_method = similarity_method_task),
+        sprintf("Error computing W_task_raw for subject %d: %%s.", subject_idx),
+        default = NULL
+    )
     
     if (is.null(W_task_i_raw)) return(result)
     
@@ -457,36 +457,36 @@ compute_task_matrices <- function(subject_idx, task_data_i, args, W_conn_i, L_co
     
     # Redundancy Check
     if (check_redundancy) {
-        rho_i <- tryCatch({
-            compute_graph_correlation(W_conn_i, W_task_i_raw)
-        }, error = function(e) {
-            warning(sprintf("Error computing graph correlation for subject %d: %s", subject_idx, e$message)); NA
-        })
+        rho_i <- safe_wrapper(
+            compute_graph_correlation(W_conn_i, W_task_i_raw),
+            sprintf("Error computing graph correlation for subject %d: %%s", subject_idx),
+            default = NA
+        )
         
         result$qc_metrics$rho_redundancy <- rho_i
         
         if (!is.na(rho_i) && rho_i >= redundancy_threshold) {
             if (verbose) message(sprintf("  - Subject %d: W_task/W_conn redundancy rho=%.3f >= %.3f. Residualizing W_task.", subject_idx, rho_i, redundancy_threshold))
-            W_task_i <- tryCatch({
+            W_task_i <- safe_wrapper(
                 residualize_graph_on_subspace(
                     W_graph_to_residualize = W_task_i_raw,
                     L_graph_for_projection = L_conn_i,
                     k_eigenvectors_to_remove = args$residualize_k_conn_proj,
                     k_nn_resparsify = args$residualize_k_conn_labels
-                )
-            }, error = function(e) {
-                warning(sprintf("Error residualizing W_task for subject %d: %s. Using W_task_raw.", subject_idx, e$message)); W_task_i_raw
-            })
+                ),
+                sprintf("Error residualizing W_task for subject %d: %%s. Using W_task_raw.", subject_idx),
+                default = W_task_i_raw
+            )
             result$qc_metrics$was_residualized <- TRUE
         }
     }
     
     # Compute L_task from the final W_task_i (raw or residualized)
-    L_task_i <- tryCatch({
-        compute_graph_laplacian_sparse(W_task_i, alpha = alpha_laplacian, degree_type = degree_type_laplacian)
-    }, error = function(e) {
-        warning(sprintf("Error computing L_task for subject %d: %s.", subject_idx, e$message)); NULL
-    })
+    L_task_i <- safe_wrapper(
+        compute_graph_laplacian_sparse(W_task_i, alpha = alpha_laplacian, degree_type = degree_type_laplacian),
+        sprintf("Error computing L_task for subject %d: %%s.", subject_idx),
+        default = NULL
+    )
     
     result$W_task_i <- W_task_i
     result$L_task_i <- L_task_i
@@ -518,11 +518,11 @@ shape_basis <- function(subject_idx, L_conn_i, L_task_i, args, W_conn_i, W_task_
     spectral_rank_k <- args$spectral_rank_k
     
     if (task_method == "core_hatsa") {
-        sketch <- tryCatch({
-            compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k, eigenvalue_tol = 1e-8)
-        }, error = function(e) {
-            warning(sprintf("Error computing spectral sketch (core) for subject %d: %s.", subject_idx, e$message)); NULL
-        })
+        sketch <- safe_wrapper(
+            compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k, eigenvalue_tol = 1e-8),
+            sprintf("Error computing spectral sketch (core) for subject %d: %%s.", subject_idx),
+            default = NULL
+        )
         if (is.null(sketch)) return(result)
         result$U_original <- sketch$vectors
         result$Lambda_original <- sketch$values
@@ -539,11 +539,11 @@ shape_basis <- function(subject_idx, L_conn_i, L_task_i, args, W_conn_i, W_task_
                  warning(sprintf("L_conn_i also NULL for subject %d. Skipping basis.", subject_idx))
                  return(result)
             }
-            sketch <- tryCatch({
-                compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k, eigenvalue_tol = 1e-8)
-            }, error = function(e) {
-                warning(sprintf("Error computing spectral sketch (lambda_blend fallback to core L_conn) for subject %d: %s.", subject_idx, e$message)); NULL
-            })
+            sketch <- safe_wrapper(
+                compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k, eigenvalue_tol = 1e-8),
+                sprintf("Error computing spectral sketch (lambda_blend fallback to core L_conn) for subject %d: %%s.", subject_idx),
+                default = NULL
+            )
         } else {
             # Blend W matrices first
             if (args$lambda_blend_value == 0) { # Effectively core_hatsa
@@ -557,19 +557,19 @@ shape_basis <- function(subject_idx, L_conn_i, L_task_i, args, W_conn_i, W_task_
             }
             
             # Compute Laplacian from the blended W_hybrid_i
-            L_hybrid_i <- tryCatch({
-                compute_graph_laplacian_sparse(W_hybrid_i, alpha = args$alpha_laplacian, degree_type = args$degree_type_laplacian)
-            }, error = function(e) {
-                warning(sprintf("Error computing L_hybrid_i from blended W for subject %d: %s. Skipping basis.", subject_idx, e$message)); NULL
-            })
+            L_hybrid_i <- safe_wrapper(
+                compute_graph_laplacian_sparse(W_hybrid_i, alpha = args$alpha_laplacian, degree_type = args$degree_type_laplacian),
+                sprintf("Error computing L_hybrid_i from blended W for subject %d: %%s. Skipping basis.", subject_idx),
+                default = NULL
+            )
 
             if(is.null(L_hybrid_i)) return(result) # Stop if Laplacian computation failed
 
-            sketch <- tryCatch({
-                compute_spectral_sketch_sparse(L_hybrid_i, spectral_rank_k, eigenvalue_tol = 1e-8)
-            }, error = function(e) {
-                warning(sprintf("Error computing spectral sketch (lambda_blend) for subject %d: %s.", subject_idx, e$message)); NULL
-            })
+            sketch <- safe_wrapper(
+                compute_spectral_sketch_sparse(L_hybrid_i, spectral_rank_k, eigenvalue_tol = 1e-8),
+                sprintf("Error computing spectral sketch (lambda_blend) for subject %d: %%s.", subject_idx),
+                default = NULL
+            )
         }
         if (is.null(sketch)) return(result) # U_original and Lambda_original will be NULL
         result$U_original <- sketch$vectors
@@ -577,11 +577,11 @@ shape_basis <- function(subject_idx, L_conn_i, L_task_i, args, W_conn_i, W_task_
         
     } else if (task_method == "gev_patch") {
         # Core sketch
-        core_sketch <- tryCatch({
-            compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k, eigenvalue_tol = 1e-8)
-        }, error = function(e) {
-            warning(sprintf("Error computing spectral sketch (core for GEV) for subject %d: %s.", subject_idx, e$message)); NULL
-        })
+        core_sketch <- safe_wrapper(
+            compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k, eigenvalue_tol = 1e-8),
+            sprintf("Error computing spectral sketch (core for GEV) for subject %d: %%s.", subject_idx),
+            default = NULL
+        )
         if (is.null(core_sketch)) return(result)
         result$U_original <- core_sketch$vectors
         result$Lambda_original <- core_sketch$values
@@ -590,16 +590,16 @@ shape_basis <- function(subject_idx, L_conn_i, L_task_i, args, W_conn_i, W_task_
         if (is.null(L_task_i)) {
             warning(sprintf("L_task is NULL for subject %d (task_method=%s). Cannot compute GEV patch.", subject_idx, task_method))
         } else {
-            gev_results <- tryCatch({
+            gev_results <- safe_wrapper(
                 solve_gev_laplacian_primme(
                     L_task_i, L_conn_i,
                     k_request = args$k_gev_dims * 2, # Request more, filter later
                     lambda_max_thresh = args$gev_lambda_max,
                     epsilon_reg_B = args$gev_epsilon_reg
-                )
-            }, error = function(e) {
-                warning(sprintf("Error solving GEV for subject %d: %s.", subject_idx, e$message)); NULL
-            })
+                ),
+                sprintf("Error solving GEV for subject %d: %%s.", subject_idx),
+                default = NULL
+            )
             
             if (!is.null(gev_results)) {
                 result$U_patch <- gev_results$vectors
