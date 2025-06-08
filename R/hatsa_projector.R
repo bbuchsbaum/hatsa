@@ -191,6 +191,18 @@ hatsa_projector <- function(hatsa_core_results, parameters) {
     method = parameters$method # Store method, e.g., "hatsa_core"
   )
 
+  # --- Initialize cache and store Fréchet mean of rotations ---
+  obj$._cache <- list()
+  valid_Rs_for_mean <- Filter(function(x) is.matrix(x) && !is.null(x), hatsa_core_results$R_final_list)
+  if (length(valid_Rs_for_mean) > 0) {
+    obj$._cache$R_frechet_mean <- tryCatch(
+      frechet_mean_so_fast(valid_Rs_for_mean, refine = TRUE),
+      error = function(e) if (k > 0) diag(k) else matrix(0, 0, 0)
+    )
+  } else {
+    obj$._cache$R_frechet_mean <- if (k > 0) diag(k) else matrix(0, 0, 0)
+  }
+
   # Set the class for S3 dispatch
   # Inherits from multiblock_biprojector, which itself inherits from projector
   class(obj) <- c("hatsa_projector", "multiblock_biprojector", "projector", "list")
@@ -460,15 +472,18 @@ project_block.hatsa_projector <- function(object, newdata = NULL, block, ...) {
 #'   for dispersion (e.g., "cov_coeffs"). Passed to `riemannian_dispersion_spd`.
 #' @param riemannian_dispersion_options A list of additional arguments passed to
 #'   `riemannian_dispersion_spd` (e.g., for `use_geometric_median`, `spd_regularize_epsilon`, `verbose`).
+#' @param recompute_R_bar Logical; if TRUE the Fr\u00e9chet mean of the rotations
+#'   is recomputed even if a cached value is present. Default FALSE.
 #' @return A list object of class \code{summary.hatsa_projector} containing
 #'   summary statistics.
 #' @export
 #' @importFrom stats predict sd median na.omit
 #' @importFrom expm logm expm sqrtm
-summary.hatsa_projector <- function(object, ..., 
+summary.hatsa_projector <- function(object, ...,
                                     compute_riemannian_dispersion = FALSE,
                                     riemannian_dispersion_type = "cov_coeffs",
-                                    riemannian_dispersion_options = list()) {
+                                    riemannian_dispersion_options = list(),
+                                    recompute_R_bar = FALSE) {
   # Basic information
   summary_info <- list(
     method = object$parameters$method,
@@ -554,15 +569,18 @@ summary.hatsa_projector <- function(object, ...,
         return(norm(log_R1t_R2, type = "F") / sqrt(2))
       }
 
-      # Use tryCatch to safely attempt to compute Frechet mean
-      R_bar <- tryCatch({
-        # Try to use frechet_mean_so_k function if available
-        frechet_mean_so_k(R_list = Rs_valid, k_dim = k_dim, max_iter = 50, tol = 1e-7, project_to_SOk = TRUE)
-      }, error = function(e) {
-        # Fallback to identity matrix and issue warning
-        warning("Failed to compute Frechet mean rotation: ", e$message, ". Using identity matrix as fallback.")
-        diag(k_dim)
-      })
+      if (!recompute_R_bar && !is.null(object$._cache$R_frechet_mean)) {
+        R_bar <- object$._cache$R_frechet_mean
+      } else {
+        R_bar <- tryCatch(
+          frechet_mean_so_fast(Rs_valid, refine = TRUE),
+          error = function(e) {
+            warning("Failed to compute Fr\u00e9chet mean rotation: ", e$message, ". Using identity matrix as fallback.")
+            if (k_dim > 0) diag(k_dim) else matrix(0, 0, 0)
+          }
+        )
+        object$._cache$R_frechet_mean <- R_bar
+      }
       
       summary_info$R_frechet_mean <- R_bar # Store the mean rotation
       
