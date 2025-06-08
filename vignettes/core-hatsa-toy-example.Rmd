@@ -1,0 +1,275 @@
+---
+title: "Core HATSA with a Toy-Connectome Generator"
+author: "HATSA Vignette Contributor"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Core HATSA with a Toy-Connectome}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+# Ensure hatsa is loaded for the vignette
+# library(hatsa) # This will be loaded in a later chunk explicitly for clarity
+```
+
+## Introduction
+
+This vignette demonstrates the core functionality of the `hatsa` package using a synthetic "Toy-Connectome" generator. This generator creates data with a known ground-truth spectral basis and subject-specific rotations, allowing us to test HATSA's ability to recover these parameters.
+
+The key properties of this synthetic data are:
+
+*   **Known ground-truth spectral basis (`U_true`)**: Enables direct comparison with the learned basis.
+*   **Known subject-specific rotations (`R_true_list`)**: Allows quantitative assessment of HATSA's alignment accuracy.
+*   **Realistic correlation structure**: The underlying graph (a ring graph) and AR(1) latent dynamics ensure that the resulting Laplacians have clear eigengaps and that anchor parcels lie on a smooth manifold.
+*   **Time-series data**: The generator produces subject-specific time-series matrices (`X_list`), which is the standard input for the full HATSA pipeline (graph construction, Laplacian computation, spectral sketching).
+*   **Controllable signal-to-noise ratio (SNR) and eigengap**: Allows for stress-testing the algorithm.
+
+## Toy-Connectome Generator
+
+The following functions define the toy-connectome generator and a helper to calculate misalignment angles.
+
+```{r toy_generator_definition, echo = TRUE}
+suppressPackageStartupMessages({
+  library(Matrix)  # For sparse matrices
+  library(RSpectra) # For fast partial eigendecompositions
+  # library(hatsa) # Will be loaded explicitly when used
+  # expm is suggested by misalign_deg, which is now a package function
+})
+
+# The misalign_deg function is now part of the hatsa package and will be available
+# after library(hatsa) is called in the next chunk.
+# The safe_logm helper is internal to that function.
+
+#' Generate Toy Data for Core HATSA
+#'
+#' Creates synthetic time-series data for multiple subjects with a known
+#' underlying spectral structure and subject-specific rotations.
+#' This version incorporates feedback for improved realism and correctness.
+#'
+#' @param V Integer, number of parcels (nodes). Default 40.
+#' @param k Integer, spectral rank (number of eigenvectors). Default 5.
+#' @param Nsubj Integer, number of subjects. Default 6.
+#' @param Tlen Integer, number of time points per subject. Default 300.
+#' @param snr Numeric, signal-to-noise ratio. Default 2.5.
+#' @param seed Integer, random seed for reproducibility. Default 42.
+#' @param phi Numeric, AR(1) coefficient for latent dynamics. Default 0.6.
+#' @return A list containing:
+#'   \itemize{
+#'     \item{`X_list`}{A list of `Nsubj` matrices, each `Tlen x V`, representing subject time-series data.}
+#'     \item{`U_true`}{The `V x k` ground-truth spectral basis (eigenvectors).}
+#'     \item{`R_true_list`}{A list of `Nsubj` `k x k` ground-truth rotation matrices.}
+#'     \item{`L_true_ring`}{The `V x V` true ring Laplacian matrix used.}
+#'     \item{`eigenvalues_true`}{The first `k` eigenvalues of `L_true_ring`.}
+#'   }
+make_toy_hatsa <- function(V=40, k=5, Nsubj=6, Tlen=300,
+                           snr=2.5, seed=42, phi=0.6){
+  set.seed(seed)
+  ## Ring adjacency (wrap-around)
+  ringW <- Matrix::sparseMatrix(
+      i = c(1:(V-1),   2:V, V, 1),
+      j = c(2:V,       1:(V-1),1,V),
+      x = 1, dims = c(V,V))
+  D <- Matrix::Diagonal(x = Matrix::rowSums(ringW))
+  L <- D - ringW
+  e  <- RSpectra::eigs_sym(L, k = k, which = "SA")
+  U0 <- e$vectors
+
+  rand_SO <- function(p){
+    Q <- qr.Q(qr(matrix(rnorm(p*p),p)))
+    if(det(Q)<0) Q[,p] <- -Q[,p] # Corrected: flip last column for SO(k)
+    Q}
+  R_list <- replicate(Nsubj, rand_SO(k), simplify = FALSE)
+
+  latent <- function(){
+    Z <- matrix(0,Tlen,k)
+    # Initialize with stationary variance for AR(1) if phi < 1
+    if (abs(phi) < 1) {
+        Z[1,] <- rnorm(k, sd = sqrt(1 / (1 - phi^2)))
+    } else {
+        Z[1,] <- rnorm(k)
+    }
+    for(t in 2:Tlen) Z[t,] <- phi*Z[t-1,] + rnorm(k)
+    Z}
+
+  X_list <- lapply(R_list, function(Ri){
+      sig <- latent() %*% t(Ri) %*% t(U0)      # T x V
+      # Simplified SNR calculation based on review
+      sd_n <- sqrt(mean(apply(sig,2,var, na.rm=TRUE), na.rm=TRUE)/snr)
+      if(is.na(sd_n) || sd_n == 0) sd_n <- 1e-6 # ensure some noise if signal is flat
+      sig + matrix(rnorm(Tlen*V,sd=sd_n),Tlen,V,
+                   dimnames=list(NULL,paste0("P",1:V)))
+  })
+
+  list(X_list=X_list,U_true=U0,R_true_list=R_list,
+       L_true_ring=L,eigenvalues_true=e$values[1:k]) # Return only the k eigenvalues for U0
+}
+
+# Helper for safe matrix logarithm, returning NULL on error
+safe_logm <- function(M) {
+  res <- tryCatch(
+    expm::logm(M),
+    error = function(e) {
+      warning(paste("Matrix logarithm failed:", e$message, ". Using trace-based heuristic for misalignment."))
+      return(NULL)
+    }
+  )
+  return(res)
+}
+
+
+```
+
+## Running Core HATSA on Toy Data
+
+Now, let's generate the toy data and run the core HATSA algorithm.
+
+```{r run_hatsa_core_toy, echo = TRUE}
+# Load hatsa package if not already loaded
+if (!requireNamespace("hatsa", quietly = TRUE)) {
+  stop("Please install the 'hatsa' package to run this vignette.")
+}
+library(hatsa)
+
+# 1. Generate Toy Data
+set.seed(123) # For reproducibility of this vignette run
+toy_data <- make_toy_hatsa(V = 40, k = 5, Nsubj = 6, Tlen = 300, snr = 2.5, phi = 0.6)
+
+X_list_toy <- toy_data$X_list
+U_true_toy <- toy_data$U_true
+R_true_list_toy <- toy_data$R_true_list
+
+# 2. Set up parameters for run_task_hatsa (core HATSA mode)
+# Anchor selection: For simplicity, let's pick the first 10 parcels as anchors.
+# In a real scenario, anchor selection would be more data-driven.
+anchor_indices_toy <- 1:10 
+k_spectral_rank_toy <- 5 # Must match k from toy data generation for meaningful comparison
+
+# HATSA parameters (using defaults or simple values for demonstration)
+# Refer to `?run_task_hatsa` for detailed parameter descriptions.
+params_core_hatsa <- list(
+  subject_data_list = X_list_toy,
+  task_data_list = NULL, # Indicates core_hatsa method
+  anchor_indices = anchor_indices_toy,
+  k_spectral_rank = k_spectral_rank_toy,
+  # Vp and Nsub can often be inferred, but good to be explicit if known
+  Vp = ncol(X_list_toy[[1]]), 
+  Nsub = length(X_list_toy),
+  
+  # Graph construction and refinement parameters (using some defaults)
+  k_conn_pos = 7,       # For k-NN graph construction
+  k_conn_neg = 7,       # For k-NN graph construction (negative weights)
+  n_refine = 2,         # Number of GPA refinement iterations
+  alpha_laplacian = 0.95, # For lazy random walk Laplacian
+  
+  # GPA parameters
+  gpa_method = "standard",
+  
+  # Control verbosity and parallel processing
+  verbose = FALSE,
+  future_plan = "sequential" # For deterministic vignette run
+)
+
+# 3. Run Core HATSA
+# We use run_task_hatsa with task_data_list = NULL for core HATSA.
+# Set future plan for sequential execution for deterministic vignette run
+if (requireNamespace("future", quietly = TRUE)) {
+  old_plan <- future::plan(future::sequential)
+  on.exit(future::plan(old_plan), add = TRUE)
+} else {
+  # If future is not available, run_task_hatsa should handle sequential execution by default
+  # or its internal future_lapply calls will default to sequential.
+}
+
+message("Running Core HATSA on toy data...")
+# Corrected argument names as per typical run_task_hatsa signature
+# Vp and Nsub are usually inferred within run_task_hatsa or its helpers
+hatsa_results_toy <- run_task_hatsa(
+    subject_data_list = X_list_toy,
+    task_data_list    = NULL,             # Ensures core_hatsa method is triggered
+    anchor_indices    = anchor_indices_toy,
+    spectral_rank_k   = k_spectral_rank_toy, # Corrected name
+    task_method       = "core_hatsa",     # Explicitly core_hatsa (though NULL task_data_list implies it)
+    k_conn_pos        = 7, 
+    k_conn_neg        = 7, 
+    n_refine          = 2, 
+    alpha_laplacian   = 0.95, # Example value, adjust as needed
+    gpa_method        = "standard", # Example value
+    verbose           = FALSE
+    # future_plan argument removed; managed by future::plan() above
+)
+message("Core HATSA run complete.")
+
+# 4. Extract Estimated Rotations
+R_est_list_toy <- hatsa_results_toy$R_final_list
+
+# 5. Evaluate Misalignment
+misalignment_scores <- sapply(1:length(R_est_list_toy), function(i) {
+  misalign_deg(R_est_list_toy[[i]], R_true_list_toy[[i]])
+})
+
+print("Misalignment angles (degrees) between estimated and true rotations:")
+print(misalignment_scores)
+
+# We can also check the mean misalignment
+print(paste("Mean misalignment angle:", round(mean(misalignment_scores), 2), "degrees"))
+
+# For an SNR of 2.5, we expect relatively low misalignment angles (e.g., < 10-15 degrees for a reasonable SNR like 2.5, and ideally lower as suggested by the original prompt <5 degrees)
+# The exact values depend on the noise realization and the specific k.
+# The user's original example mentioned < ~5 degrees for SNR=2.5. The geodesic distance
+# might yield slightly different values but should be consistently small for good recovery.
+
+# Optionally, compare the estimated group template `hatsa_results_toy$v` with `U_true_toy`
+# This requires aligning them first, as they are unique up to an orthogonal transformation.
+# For example, using Procrustes:
+procrustes_align_v <- function(est_v, true_U) {
+  if (!requireNamespace("vegan", quietly = TRUE)) {
+    warning("vegan package not available for Procrustes alignment of group template.")
+    return(list(aligned_v = est_v, rotation = diag(ncol(est_v)), call = NULL))
+  }
+  # vegan::procrustes expects Y, X where Y is target (true_U)
+  # It finds X %*% R ~ Y
+  # So, est_v %*% R ~ true_U. We want to rotate est_v.
+  res_proc <- vegan::procrustes(X = true_U, Y = est_v, symmetric = FALSE)
+  # res_proc$Yrot is est_v rotated to match true_U
+  # res_proc$rotation is the rotation matrix applied to Y (est_v)
+  return(list(aligned_v = res_proc$Yrot, rotation = res_proc$rotation, procrustes_result = res_proc))
+}
+
+# alignment_group_v <- procrustes_align_v(hatsa_results_toy$v, U_true_toy)
+# plot(as.vector(U_true_toy), as.vector(alignment_group_v$aligned_v), 
+#      xlab = "True U0 (flattened)", ylab = "Estimated V aligned (flattened)",
+#      main = "Group Template Alignment")
+# abline(0,1, col="red")
+# cor_val <- cor(as.vector(U_true_toy), as.vector(alignment_group_v$aligned_v))
+# print(paste("Correlation between true U0 and aligned estimated V:", round(cor_val, 3)))
+# Note: The global sign of eigenvectors can be ambiguous. Procrustes handles this.
+```
+
+## Interpreting the Results
+
+The primary output for assessing HATSA's core performance in this toy example is the list of misalignment angles. Small angles (e.g., typically less than 10-15 degrees for a reasonable SNR like 2.5, and ideally lower as suggested by the original prompt <5 degrees) indicate that HATSA has successfully recovered the subject-specific rotations.
+
+The `make_toy_hatsa` generator is designed such that:
+*   **Known Rotations**: Directly tests the Generalized Procrustes Analysis (GPA) component of HATSA.
+*   **Ring Laplacian Basis**: The eigenvectors of a ring graph are smooth (Fourier-like bases), which provides a good test case for spectral methods. The choice of anchors can then be related to these smooth underlying components.
+*   **Adjustable SNR**: Allows testing the robustness of HATSA to noise. Lowering the SNR (e.g., to 1.0 or less) should generally lead to higher misalignment angles.
+*   **AR(1) Latent Dynamics**: This generates time series with temporal auto-correlation, making the synthetic data more realistic for methods that estimate connectivity from time series.
+
+## Potential Extensions
+
+The toy-connectome generator can be extended to test various aspects of HATSA:
+
+*   **Anchor Mis-placement**: Systematically alter the `anchor_indices` (e.g., by dropping an anchor or shifting indices) to evaluate the stability of the solution.
+*   **Missing Data**: Introduce missing parcels (e.g., by zeroing out columns in `X_list` for some subjects) to test robustness to incomplete data.
+*   **Task Data Simulation**: Extend the latent dynamics to include event-locked responses, generate corresponding beta maps or activation patterns, and use these to test task-guided HATSA variants (though this vignette focuses on core HATSA).
+
+This simple, deterministic toy example provides a powerful way to understand, debug, and validate the core HATSA algorithm.
+
+
+</rewritten_file> 
