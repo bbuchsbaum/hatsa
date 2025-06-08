@@ -241,6 +241,63 @@ test_that("project_voxels.hatsa_projector: basic functionality and dimensions", 
 
 })
 
+test_that("project_voxels works with precomputed W_vox_parc", {
+  V_p_fit <- 15
+  N_subjects_fit <- 2
+  k_fit <- 3
+  V_v_proj <- 40
+
+  fit_parcel_data <- .generate_mock_subject_data_parcels(N_subjects_fit, V_p_fit)
+  fit_params <- .get_default_hatsa_params_for_voxel_test(V_p_fit, k_fit)
+  hatsa_fitted_obj <- suppressMessages(run_hatsa_core(
+    subject_data_list = fit_parcel_data,
+    anchor_indices = fit_params$anchor_indices,
+    spectral_rank_k = fit_params$spectral_rank_k,
+    k_conn_pos = fit_params$k_conn_pos,
+    k_conn_neg = fit_params$k_conn_neg,
+    n_refine = fit_params$n_refine
+  ))
+
+  voxel_ts_list <- .generate_mock_voxel_ts_list(N_subjects_fit, V_v_proj)
+  voxel_coords_proj <- .generate_mock_coords(V_v_proj)
+  parcel_coords_fit <- .generate_mock_coords(V_p_fit)
+
+  # Precompute W_vox_parc similarly to compute_voxel_basis_nystrom
+  nn_res <- RANN::nn2(data = parcel_coords_fit, query = voxel_coords_proj, k = 3, treetype = "kd")
+  first_dists <- sqrt(nn_res$nn.dists[, 1])
+  med_dist <- median(first_dists, na.rm = TRUE)
+  sigma_eff <- if (is.finite(med_dist) && med_dist > 1e-6) med_dist / sqrt(2) else 1.0
+  sims <- exp(-nn_res$nn.dists / (2 * sigma_eff^2))
+  W_pre <- Matrix::as(Matrix::sparseMatrix(
+    i = rep(1:nrow(voxel_coords_proj), each = 3),
+    j = as.vector(t(nn_res$nn.idx)),
+    x = as.vector(t(sims)),
+    dims = c(nrow(voxel_coords_proj), V_p_fit),
+    repr = "T", giveCsparse = FALSE
+  ), "dgCMatrix")
+
+  res_default <- suppressMessages(project_voxels(
+    object = hatsa_fitted_obj,
+    voxel_timeseries_list = voxel_ts_list,
+    voxel_coords = voxel_coords_proj,
+    parcel_coords = parcel_coords_fit,
+    n_nearest_parcels = 3,
+    kernel_sigma = "auto"
+  ))
+
+  res_precomp <- suppressMessages(project_voxels(
+    object = hatsa_fitted_obj,
+    voxel_timeseries_list = voxel_ts_list,
+    voxel_coords = voxel_coords_proj,
+    parcel_coords = parcel_coords_fit,
+    n_nearest_parcels = 3,
+    kernel_sigma = "auto",
+    W_vox_parc = W_pre
+  ))
+
+  expect_equal(res_precomp, res_default)
+})
+
 # Further tests for project_voxels could include:
 # - Consistency check: If two subjects have identical voxel time-series and identical
 #   Phi_voxel_i (which implies identical U_orig_i, Lambda_orig_i from the model, and identical coords),

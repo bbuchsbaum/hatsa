@@ -403,6 +403,11 @@ project_voxels <- function(object, voxel_timeseries_list, voxel_coords, parcel_c
 #'   Passed to \code{\link{compute_voxel_basis_nystrom}}.
 #' @param kernel_sigma Numeric or "auto", kernel bandwidth for Nyström extension.
 #'   Passed to \code{\link{compute_voxel_basis_nystrom}}.
+#' @param W_vox_parc Optional pre-computed voxel-to-parcel affinity matrix
+#'   (V_v x V_p). If provided, this matrix is reused for all subjects and the
+#'   internal k-NN search and Gaussian kernel calculation are skipped. If
+#'   \code{NULL} (default), the affinity matrix is computed once using
+#'   \code{n_nearest_parcels} and \code{kernel_sigma} and then reused.
 #' @param data_type Character string, either "timeseries" (default) or
 #'   "coefficients". If "timeseries", the projection involves scaling by `1/T_i`
 #'   (number of time points) to estimate covariance with the basis.
@@ -483,12 +488,13 @@ project_voxels <- function(object, voxel_timeseries_list, voxel_coords, parcel_c
 #' }
 #' @export
 #' @importFrom Matrix t
-project_voxels.hatsa_projector <- function(object, 
-                                           voxel_timeseries_list, 
-                                           voxel_coords, 
-                                           parcel_coords, 
-                                           n_nearest_parcels = 10, 
-                                           kernel_sigma = "auto", 
+project_voxels.hatsa_projector <- function(object,
+                                           voxel_timeseries_list,
+                                           voxel_coords,
+                                           parcel_coords,
+                                           n_nearest_parcels = 10,
+                                           kernel_sigma = "auto",
+                                           W_vox_parc = NULL,
                                            data_type = c("timeseries", "coefficients"),
                                            ...) {
   
@@ -519,6 +525,54 @@ project_voxels.hatsa_projector <- function(object,
 
   V_v <- nrow(voxel_coords)
   k <- object$parameters$k
+
+  # Pre-compute voxel-to-parcel affinity matrix once if not supplied
+  if (is.null(W_vox_parc)) {
+    if (!requireNamespace("RANN", quietly = TRUE)) {
+      stop("The 'RANN' package is required for voxel projection. Please install it.")
+    }
+    if (!requireNamespace("Matrix", quietly = TRUE)) {
+      stop("The 'Matrix' package is required. Please install it.")
+    }
+    if (n_nearest_parcels < 1) stop("`n_nearest_parcels` must be at least 1.")
+
+    nn_results <- RANN::nn2(data = parcel_coords, query = voxel_coords,
+                            k = n_nearest_parcels, treetype = "kd")
+
+    kernel_sigma_effective <- kernel_sigma
+    if (is.character(kernel_sigma) && kernel_sigma == "auto") {
+      if (V_v > 0 && ncol(nn_results$nn.dists) >= 1) {
+        first_nn_sqrt_dists <- sqrt(nn_results$nn.dists[, 1])
+        median_first_nn_dist <- median(first_nn_sqrt_dists, na.rm = TRUE)
+        if (is.finite(median_first_nn_dist) && median_first_nn_dist > 1e-6) {
+          kernel_sigma_effective <- median_first_nn_dist / sqrt(2)
+        } else {
+          kernel_sigma_effective <- 1.0
+        }
+      } else {
+        kernel_sigma_effective <- 1.0
+      }
+    } else if (!is.numeric(kernel_sigma) || length(kernel_sigma) != 1 || kernel_sigma <= 0) {
+      stop("`kernel_sigma` must be a positive numeric value or the string 'auto'.")
+    }
+
+    similarities <- exp(-nn_results$nn.dists / (2 * kernel_sigma_effective^2))
+    affinities_flat <- as.vector(t(similarities))
+    W_T <- Matrix::sparseMatrix(i = rep(1:V_v, each = n_nearest_parcels),
+                                j = as.vector(t(nn_results$nn.idx)),
+                                x = affinities_flat,
+                                dims = c(V_v, object$parameters$V_p),
+                                repr = "T", giveCsparse = FALSE)
+    W_vox_parc <- as(W_T, "dgCMatrix")
+  } else {
+    if (!inherits(W_vox_parc, "dgCMatrix")) {
+      W_vox_parc <- as(W_vox_parc, "dgCMatrix")
+    }
+    if (nrow(W_vox_parc) != V_v || ncol(W_vox_parc) != object$parameters$V_p) {
+      stop(sprintf("Provided `W_vox_parc` has dimensions [%d x %d], expected [%d x %d]",
+                   nrow(W_vox_parc), ncol(W_vox_parc), V_v, object$parameters$V_p))
+    }
+  }
 
   results_list <- vector("list", num_new_subjects)
 
@@ -582,6 +636,7 @@ project_voxels.hatsa_projector <- function(object,
       Lambda_orig_parcel = Lambda_orig_parcel_i,
       n_nearest_parcels = n_nearest_parcels,
       kernel_sigma = kernel_sigma,
+      W_vox_parc = W_vox_parc,
       ...
     )
     
