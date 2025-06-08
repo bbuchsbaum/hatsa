@@ -127,7 +127,7 @@ if (!is.null(fitted_hatsa_model)) {
 
   # print(str(projected_vox_coeffs, max.level=1))
   # if (length(projected_vox_coeffs) > 0) {
-  #   print(dim(projected_vox_coeffs[[1]])) # Should be V_vox_proj x k_comp_fit
+  #   print(dim(projected_vox_coeffs[[1]])) # Should be T_time_vox x k_comp_fit
   # }
 } else {
   if (interactive()) message("Skipping project_voxels example: fitted_hatsa_model not created.")
