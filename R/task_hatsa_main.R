@@ -169,15 +169,6 @@ run_task_hatsa <- function(
     return(result)
 }
 
-# # Helper for status messages (can be moved to utils)
-# message_stage <- function(message_text, verbose = TRUE) {
-#     if (verbose) {
-#         message(rep("-", nchar(message_text)))
-#         message(message_text)
-#         message(rep("-", nchar(message_text)))
-#     }
-# }
-
 #' Advanced Options for Task-Informed HATSA
 #'
 #' Creates a list of advanced parameters for the task_hatsa function.
