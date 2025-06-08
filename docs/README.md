@@ -35,7 +35,7 @@ This directory contains the original planning documents that guided the developm
   - Validation criteria
 
 ### **Riemannian Geometry Extensions**
-- **[Riemanian_plan.md](./Riemanian_plan.md)** - SPD manifold operations
+- **[Riemannian_plan.md](./Riemannian_plan.md)** - SPD manifold operations
   - Mathematical foundations for Riemannian HATSA
   - SPD representation methods
   - Geometric alignment strategies
@@ -62,7 +62,7 @@ This directory contains the original planning documents that guided the developm
 ### **For Conceptual Understanding**
 - Start with `hatsa_plan.md` for core mathematical foundations
 - Read `T-HATSA_plan.md` for task-informed extensions
-- Review `Riemanian_plan.md` for geometric operations
+- Review `Riemannian_plan.md` for geometric operations
 
 ### **For Implementation Reference**
 - Use the mathematical specifications in these documents
