@@ -84,11 +84,23 @@ compute_subject_connectivity_graph_sparse <- function(X_subject, parcel_names,
         if (length(pos_candidates_idx_in_subset) > 0) {
           pos_subset_vals <- node_corrs_candidates[pos_candidates_idx_in_subset]
           num_to_keep_pos <- min(k_conn_pos, length(pos_subset_vals))
-          # Use head(order(...)) for partial sort efficiency
-          top_pos_in_subset_ordered_idx <- head(order(pos_subset_vals, decreasing = TRUE), num_to_keep_pos)
-          
-          current_selected_indices_in_selectable <- c(current_selected_indices_in_selectable, pos_candidates_idx_in_subset[top_pos_in_subset_ordered_idx])
-          current_selected_values <- c(current_selected_values, pos_subset_vals[top_pos_in_subset_ordered_idx])
+          # Use partial sorting to avoid ordering the full vector
+          part_order <- order(
+            pos_subset_vals,
+            decreasing = TRUE,
+            partial = seq_len(num_to_keep_pos)
+          )[seq_len(num_to_keep_pos)]
+          # Fully sort the selected top-k to maintain previous behaviour
+          top_pos_in_subset_ordered_idx <- part_order[order(pos_subset_vals[part_order], decreasing = TRUE)]
+
+          current_selected_indices_in_selectable <- c(
+            current_selected_indices_in_selectable,
+            pos_candidates_idx_in_subset[top_pos_in_subset_ordered_idx]
+          )
+          current_selected_values <- c(
+            current_selected_values,
+            pos_subset_vals[top_pos_in_subset_ordered_idx]
+          )
         }
       }
       
@@ -97,10 +109,21 @@ compute_subject_connectivity_graph_sparse <- function(X_subject, parcel_names,
         if (length(neg_candidates_idx_in_subset) > 0) {
           neg_subset_vals <- node_corrs_candidates[neg_candidates_idx_in_subset]
           num_to_keep_neg <- min(k_conn_neg, length(neg_subset_vals))
-          top_neg_in_subset_ordered_idx <- head(order(neg_subset_vals, decreasing = FALSE), num_to_keep_neg)
+          part_order <- order(
+            neg_subset_vals,
+            decreasing = FALSE,
+            partial = seq_len(num_to_keep_neg)
+          )[seq_len(num_to_keep_neg)]
+          top_neg_in_subset_ordered_idx <- part_order[order(neg_subset_vals[part_order], decreasing = FALSE)]
 
-          current_selected_indices_in_selectable <- c(current_selected_indices_in_selectable, neg_candidates_idx_in_subset[top_neg_in_subset_ordered_idx])
-          current_selected_values <- c(current_selected_values, neg_subset_vals[top_neg_in_subset_ordered_idx])
+          current_selected_indices_in_selectable <- c(
+            current_selected_indices_in_selectable,
+            neg_candidates_idx_in_subset[top_neg_in_subset_ordered_idx]
+          )
+          current_selected_values <- c(
+            current_selected_values,
+            neg_subset_vals[top_neg_in_subset_ordered_idx]
+          )
         }
       }
       
