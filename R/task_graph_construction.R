@@ -473,9 +473,9 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
     return(Matrix::Matrix(0, 0, 0, sparse = TRUE, dimnames = list(character(0), character(0))))
   }
 
-  # Ensure input is a matrix (might be sparse or dense)
-  input_matrix_dense <- as.matrix(input_matrix)
-  diag(input_matrix_dense) <- 0 # Ensure diagonal is zero
+  # Work with a sparse matrix directly to avoid unnecessary densification
+  input_matrix <- as(input_matrix, "dgCMatrix")
+  diag(input_matrix) <- 0 # Ensure diagonal is zero
 
   row_indices_list <- vector("list", V_p)
   col_indices_list <- vector("list", V_p)
@@ -483,7 +483,7 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
 
   if (k_nn > 0) {
     for (i in 1:V_p) {
-      node_vals <- input_matrix_dense[i, ]
+      node_vals <- as.numeric(input_matrix[i, ])
       selected_indices <- integer(0)
       selected_values <- numeric(0)
 
@@ -656,7 +656,12 @@ residualize_graph_on_subspace <- function(W_graph_to_residualize,
   message_stage("Computing residual graph projection...", interactive_only = TRUE)
   W_B <- W_graph_to_residualize
   U <- U_ortho # Use orthonormalized version
-  
+
+  dense_mem_gb <- (V_p * V_p * 8) / (1024^3)
+  if (dense_mem_gb > 0.5) {
+    warning(sprintf("Residualization will create ~%.2f GB dense matrices; ensure sufficient memory.", dense_mem_gb))
+  }
+
   # Calculate intermediate terms (sparse-dense and dense-dense products)
   # UT_WB = t(U) %*% W_B  (k_proj x V_p, result is dense)
   UT_WB <- Matrix::crossprod(U, W_B)
@@ -673,12 +678,9 @@ residualize_graph_on_subspace <- function(W_graph_to_residualize,
   # Term3 = U %*% UT_WB_U %*% t(U) (V_p x V_p, dense)
   Term3 <- U %*% UT_WB_U %*% Matrix::t(U)
   
-  # Compute residual W_res (potentially dense)
-  # Ensure W_B is treated as dense for subtraction if needed
-  if (!is(W_B,"matrix")) W_B_dense <- as.matrix(W_B)
-  else W_B_dense <- W_B
-  
-  W_res_dense <- W_B_dense - Term1 - Term2 + Term3
+  # Compute residual W_res (dense). Sparse input will be promoted automatically.
+  W_res_dense <- -Term1 - Term2 + Term3
+  W_res_dense <- W_res_dense + W_B
   message_stage("Symmetrizing residual graph...", interactive_only = TRUE)
 
   # 3. Symmetrize W_res
