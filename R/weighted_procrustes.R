@@ -171,13 +171,7 @@ solve_procrustes_rotation_weighted <- function(A_source, T_target,
     return(matrix(0,0,0))
   }
 
-##<<<<<<< codex/handle-k_dims-==-1-edge-case
-  M <- crossprod(A_w, T_w) # k_dims x k_dims matrix
-
-##=======
   M <- crossprod(A_source, T_target * omega_diag_vector) # k_dims x k_dims matrix
-  
-##>>>>>>> main
   if (all(abs(M) < 1e-14)) {
       warning("Cross-product matrix M (weighted) is near zero; rotation is ill-defined. Returning identity.")
       return(diag(k_dims))
