@@ -164,7 +164,6 @@ validate_and_initialize_args <- function(
 #' @param args Validated arguments from validate_and_initialize_args
 #' @param subject_data_list List of subject data matrices
 #' @param task_data_list List of task data
-#' @param anchor_indices Indices of anchor parcels
 #'
 #' @return List of processing results for each subject
 #' @importFrom future.apply future_lapply
@@ -172,8 +171,7 @@ validate_and_initialize_args <- function(
 process_subjects <- function(
     args,
     subject_data_list,
-    task_data_list,
-    anchor_indices
+    task_data_list
 ) {
     N_subjects <- args$N_subjects
     verbose <- args$verbose

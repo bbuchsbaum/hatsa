@@ -76,8 +76,7 @@
     processing_results <- process_subjects(
         args = args,
         subject_data_list = subject_data_list,
-        task_data_list = task_data_list,
-        anchor_indices = anchor_indices
+        task_data_list = task_data_list
     )
 
     # --- Step 3: Anchor Augmentation ---
