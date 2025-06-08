@@ -4,7 +4,6 @@ library(testthat)
 library(Matrix)
 skip_on_cran()
 
-source("../../R/task_hatsa.R")
 
 describe("compute_W_task_from_activations and related graph construction", {
 
