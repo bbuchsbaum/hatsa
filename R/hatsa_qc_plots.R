@@ -73,7 +73,6 @@ plot_k_stability_hatsa <- function(projector_list_over_k,
 
   for (i in seq_along(projector_list_over_k)) {
     proj_obj <- projector_list_over_k[[i]]
-    k_name <- names(projector_list_over_k)[i]
 
     if (!inherits(proj_obj, "hatsa_projector")) {
       warning(sprintf("Item %d in projector_list_over_k is not a hatsa_projector object. Skipping.", i))
@@ -142,15 +141,15 @@ plot_k_stability_hatsa <- function(projector_list_over_k,
       )
 
       mean_cv_value <- NA_real_
-      if (!is.null(spd_list) && length(Filter(Negate(is.null), spd_list)) > 0) {
+      if (!is.null(spd_list)) {
         valid_spd_list <- Filter(Negate(is.null), spd_list)
-        
-        cvs_subject <- sapply(valid_spd_list, function(spd_matrix) {
-          if (is.null(spd_matrix) || !is.matrix(spd_matrix) || any(dim(spd_matrix) == 0)) return(NA_real_)
-          # Eigenvalues of a kxk covariance matrix. k here is proj_obj$parameters$k.
-          if (proj_obj$parameters$k == 0) return(NA_real_)
-          
-          eig_vals <- tryCatch(
+        if (length(valid_spd_list) > 0) {
+          cvs_subject <- vapply(valid_spd_list, function(spd_matrix) {
+            if (is.null(spd_matrix) || !is.matrix(spd_matrix) || any(dim(spd_matrix) == 0)) return(NA_real_)
+            # Eigenvalues of a kxk covariance matrix. k here is proj_obj$parameters$k.
+            if (proj_obj$parameters$k == 0) return(NA_real_)
+
+            eig_vals <- tryCatch(
             eigen(spd_matrix, symmetric = TRUE, only.values = TRUE)$values,
             error = function(e_eig) {warning(sprintf("Eigen decomposition failed for a cov_coeff matrix (k=%d).", current_k)); NULL}
           )
@@ -168,13 +167,14 @@ plot_k_stability_hatsa <- function(projector_list_over_k,
           mean_e <- mean(eig_vals_clean, na.rm = TRUE)
           sd_e <- stats::sd(eig_vals_clean, na.rm = TRUE)
 
-          if (is.na(sd_e) || is.na(mean_e) || abs(mean_e) < .Machine$double.eps) { # check mean_e for near zero
-            return(NA_real_)
-          }
-          return(sd_e / mean_e)
-        })
-        mean_cv_value <- mean(stats::na.omit(cvs_subject), na.rm = TRUE)
-        if (is.nan(mean_cv_value)) mean_cv_value <- NA_real_ # Handle case where all cvs_subject are NA
+            if (is.na(sd_e) || is.na(mean_e) || abs(mean_e) < .Machine$double.eps) { # check mean_e for near zero
+              return(NA_real_)
+            }
+            return(sd_e / mean_e)
+          }, numeric(1))
+          mean_cv_value <- mean(stats::na.omit(cvs_subject), na.rm = TRUE)
+          if (is.nan(mean_cv_value)) mean_cv_value <- NA_real_ # Handle case where all cvs_subject are NA
+        }
       }
       results_df_list[[length(results_df_list) + 1]] <- data.frame(
         k = current_k,
