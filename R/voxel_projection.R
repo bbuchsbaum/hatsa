@@ -42,7 +42,7 @@
 #'   components (k), this matrix can be memory-intensive (e.g., V_v=400k, k=50
 #'   using 8-byte doubles is ~153MB).
 #'
-#' @importFrom Matrix Matrix Diagonal sparseMatrix t 
+#' @importFrom Matrix Matrix Diagonal sparseMatrix
 #' @keywords internal
 #' @examples
 #' # V_p <- 100; V_v <- 500; k <- 10; n_nearest <- 5; sigma <- 5
