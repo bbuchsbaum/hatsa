@@ -213,6 +213,28 @@ test_that("TCK-SGC-003: compute_subject_connectivity_graph_sparse handles zero v
   expect_length(row3_indices_in_x, 0)
 })
 
+# Test TCK-SGC-011: Memory efficient correlation for larger V_p
+test_that("TCK-SGC-011: compute_subject_connectivity_graph_sparse scales without dense correlation", {
+  skip_if_not_installed("Matrix")
+  library(Matrix)
+
+  set.seed(104)
+  V_p <- 200
+  T_i <- 20
+  X_ts <- matrix(rnorm(T_i * V_p), ncol = V_p)
+  p_names <- paste0("P", seq_len(V_p))
+
+  expect_no_error(
+    compute_subject_connectivity_graph_sparse(
+      X_subject = X_ts,
+      parcel_names = p_names,
+      k_conn_pos = 1,
+      k_conn_neg = 1,
+      use_dtw = FALSE
+    )
+  )
+})
+
 # Test TCK-SGC-004: Symmetrization Logic
 test_that("TCK-SGC-004: Symmetrization rule application", {
   skip_if_not_installed("Matrix")

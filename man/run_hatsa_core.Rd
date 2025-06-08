@@ -11,7 +11,8 @@ run_hatsa_core(
   k_conn_pos,
   k_conn_neg,
   n_refine,
-  use_dtw = FALSE
+  use_dtw = FALSE,
+  n_cores = 1L
 )
 }
 \arguments{
@@ -34,6 +35,9 @@ negative connections to retain per parcel.}
 
 \item{use_dtw}{Logical, defaults to `FALSE`. If `TRUE` (not yet fully implemented),
 Dynamic Time Warping would be considered in graph construction similarity.}
+\item{n_cores}{Integer number of CPU cores to use. If \code{>1} and the
+platform supports forking, computations are parallelized via
+\code{parallel::mclapply}.}
 }
 \value{
 A `hatsa_projector` object. This S3 object inherits from
@@ -60,7 +64,7 @@ A `hatsa_projector` object. This S3 object inherits from
 \description{
 Implements the Core HATSA algorithm to align functional connectivity patterns
 across subjects. This version uses sparse matrices for graph representations,
-efficient eigendecomposition via `RSpectra`, and incorporates robustness
+efficient eigendecomposition via `PRIMME`, and incorporates robustness
 improvements based on detailed audits.
 }
 \examples{
@@ -91,10 +95,10 @@ k_pos <- 4
 k_neg <- 2
 n_iter_refine <- 2
 
-# Run Core HATSA (requires Matrix and RSpectra packages)
+# Run Core HATSA (requires Matrix and PRIMME packages)
 hatsa_results <- NULL
 if (requireNamespace("Matrix", quietly = TRUE) &&
-    requireNamespace("RSpectra", quietly = TRUE)) {
+    requireNamespace("PRIMME", quietly = TRUE)) {
   hatsa_results <- tryCatch(
     run_hatsa_core(
       subject_data_list = subject_data,
@@ -102,7 +106,8 @@ if (requireNamespace("Matrix", quietly = TRUE) &&
       spectral_rank_k = k_spectral,
       k_conn_pos = k_pos,
       k_conn_neg = k_neg,
-      n_refine = n_iter_refine
+      n_refine = n_iter_refine,
+      n_cores = 1L
     ),
     error = function(e) {
       message("Example run failed: ", e$message)
@@ -130,7 +135,7 @@ if (requireNamespace("Matrix", quietly = TRUE) &&
     # print(dim(subject1_scores)) # Should be V_p x k
   }
 } else {
-  if (interactive()) message("Matrix and RSpectra packages needed for this example.")
+  if (interactive()) message("Matrix and PRIMME packages needed for this example.")
 }
 
 }
