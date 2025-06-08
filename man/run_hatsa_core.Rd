@@ -60,7 +60,7 @@ A `hatsa_projector` object. This S3 object inherits from
 \description{
 Implements the Core HATSA algorithm to align functional connectivity patterns
 across subjects. This version uses sparse matrices for graph representations,
-efficient eigendecomposition via `RSpectra`, and incorporates robustness
+efficient eigendecomposition via `PRIMME`, and incorporates robustness
 improvements based on detailed audits.
 }
 \examples{
@@ -91,10 +91,10 @@ k_pos <- 4
 k_neg <- 2
 n_iter_refine <- 2
 
-# Run Core HATSA (requires Matrix and RSpectra packages)
+# Run Core HATSA (requires Matrix and PRIMME packages)
 hatsa_results <- NULL
 if (requireNamespace("Matrix", quietly = TRUE) &&
-    requireNamespace("RSpectra", quietly = TRUE)) {
+    requireNamespace("PRIMME", quietly = TRUE)) {
   hatsa_results <- tryCatch(
     run_hatsa_core(
       subject_data_list = subject_data,
@@ -130,7 +130,7 @@ if (requireNamespace("Matrix", quietly = TRUE) &&
     # print(dim(subject1_scores)) # Should be V_p x k
   }
 } else {
-  if (interactive()) message("Matrix and RSpectra packages needed for this example.")
+  if (interactive()) message("Matrix and PRIMME packages needed for this example.")
 }
 
 }

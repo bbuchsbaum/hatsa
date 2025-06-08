@@ -2,7 +2,7 @@
 #'
 #' Implements the Core HATSA algorithm to align functional connectivity patterns
 #' across subjects. This version uses sparse matrices for graph representations,
-#' efficient eigendecomposition via `RSpectra`, and incorporates robustness
+#' efficient eigendecomposition via `PRIMME`, and incorporates robustness
 #' improvements based on detailed audits.
 #'
 #' @param subject_data_list A list of dense numeric matrices. Each matrix `X_i`
@@ -68,10 +68,10 @@
 #' k_neg <- 2
 #' n_iter_refine <- 2
 #'
-#' # Run Core HATSA (requires Matrix and RSpectra packages)
+#' # Run Core HATSA (requires Matrix and PRIMME packages)
 #' hatsa_results <- NULL
 #' if (requireNamespace("Matrix", quietly = TRUE) &&
-#'     requireNamespace("RSpectra", quietly = TRUE)) {
+#'     requireNamespace("PRIMME", quietly = TRUE)) {
 #'   hatsa_results <- tryCatch(
 #'     run_hatsa_core(
 #'       subject_data_list = subject_data,
@@ -107,7 +107,7 @@
 #'     # print(dim(subject1_scores)) # Should be V_p x k
 #'   }
 #' } else {
-#'   if (interactive()) message("Matrix and RSpectra packages needed for this example.")
+#'   if (interactive()) message("Matrix and PRIMME packages needed for this example.")
 #' }
 #'
 #' @seealso \code{\link{hatsa_projector}}, \code{\link{project_voxels.hatsa_projector}}
