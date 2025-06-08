@@ -337,7 +337,7 @@ predict.hatsa_projector <- function(object, newdata_list, ...) {
 
     # 3. Compute original spectral sketch (eigenvectors)
     # compute_spectral_sketch_sparse returns a list(vectors=U, values=Lambda)
-    sketch_result_new <- compute_spectral_sketch_sparse(L_conn_new, k)
+    sketch_result_new <- compute_spectral_sketch_sparse(L_conn_new, k, eigenvalue_tol = 1e-8)
     U_orig_new <- sketch_result_new$vectors
 
     if (is.null(U_orig_new) || nrow(U_orig_new) != V_p_model || ncol(U_orig_new) != k) {

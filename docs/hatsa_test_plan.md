@@ -46,7 +46,7 @@
 
 *   **TCK-SGC-007: `compute_spectral_sketch_sparse` - Basic Correctness & Dimensions**
     *   **Synthetic Data:** Known graph Laplacian `L` (e.g., from SBM in T-1) with analytically known first few eigenvectors/values.
-    *   **Test:** Call `compute_spectral_sketch_sparse(L, k=2)`.
+    *   **Test:** Call `compute_spectral_sketch_sparse(L, k=2, eigenvalue_tol = 1e-8)`.
     *   **Assertions:**
         *   `expect_true(is.list(output))` with names "vectors" and "values".
         *   `expect_equal(dim(output$vectors), c(nrow(L), 2))`.
@@ -55,14 +55,14 @@
 
 *   **TCK-SGC-008: `compute_spectral_sketch_sparse` - Trivial Eigenvector Handling**
     *   **Synthetic Data:** Laplacian `L` from a connected graph (guaranteed zero eigenvalue).
-    *   **Test:** Call `compute_spectral_sketch_sparse(L, k=3)`. Check eigenvalues returned.
+    *   **Test:** Call `compute_spectral_sketch_sparse(L, k=3, eigenvalue_tol = 1e-8)`. Check eigenvalues returned.
     *   **Assertions:**
         *   Verify the *smallest* eigenvalue returned is `> eigenvalue_tol` (default 1e-8).
         *   Verify the eigenvector corresponding to the true zero eigenvalue was correctly discarded.
 
 *   **TCK-SGC-009: `compute_spectral_sketch_sparse` - Rank Deficiency / Insufficient Eigenvectors**
     *   **Synthetic Data:** Graph `L` designed to have fewer than `k+1` non-zero eigenvalues (e.g., multiple connected components).
-    *   **Test:** Call `compute_spectral_sketch_sparse(L, k=5)` where only, say, 3 informative eigenvectors exist.
+    *   **Test:** Call `compute_spectral_sketch_sparse(L, k=5, eigenvalue_tol = 1e-8)` where only, say, 3 informative eigenvectors exist.
     *   **Assertions:** `expect_error()` with informative message about rank deficiency.
 
 *   **TCK-SGC-010: `compute_spectral_sketch_sparse` - Edge Cases `k=0`, `k=1`**

@@ -519,7 +519,7 @@ shape_basis <- function(subject_idx, L_conn_i, L_task_i, args, W_conn_i, W_task_
     
     if (task_method == "core_hatsa") {
         sketch <- tryCatch({
-            compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k)
+            compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k, eigenvalue_tol = 1e-8)
         }, error = function(e) {
             warning(sprintf("Error computing spectral sketch (core) for subject %d: %s.", subject_idx, e$message)); NULL
         })
@@ -539,8 +539,8 @@ shape_basis <- function(subject_idx, L_conn_i, L_task_i, args, W_conn_i, W_task_
                  warning(sprintf("L_conn_i also NULL for subject %d. Skipping basis.", subject_idx))
                  return(result)
             }
-            sketch <- tryCatch({ 
-                compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k) 
+            sketch <- tryCatch({
+                compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k, eigenvalue_tol = 1e-8)
             }, error = function(e) {
                 warning(sprintf("Error computing spectral sketch (lambda_blend fallback to core L_conn) for subject %d: %s.", subject_idx, e$message)); NULL
             })
@@ -566,7 +566,7 @@ shape_basis <- function(subject_idx, L_conn_i, L_task_i, args, W_conn_i, W_task_
             if(is.null(L_hybrid_i)) return(result) # Stop if Laplacian computation failed
 
             sketch <- tryCatch({
-                compute_spectral_sketch_sparse(L_hybrid_i, spectral_rank_k)
+                compute_spectral_sketch_sparse(L_hybrid_i, spectral_rank_k, eigenvalue_tol = 1e-8)
             }, error = function(e) {
                 warning(sprintf("Error computing spectral sketch (lambda_blend) for subject %d: %s.", subject_idx, e$message)); NULL
             })
@@ -578,7 +578,7 @@ shape_basis <- function(subject_idx, L_conn_i, L_task_i, args, W_conn_i, W_task_
     } else if (task_method == "gev_patch") {
         # Core sketch
         core_sketch <- tryCatch({
-            compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k)
+            compute_spectral_sketch_sparse(L_conn_i, spectral_rank_k, eigenvalue_tol = 1e-8)
         }, error = function(e) {
             warning(sprintf("Error computing spectral sketch (core for GEV) for subject %d: %s.", subject_idx, e$message)); NULL
         })

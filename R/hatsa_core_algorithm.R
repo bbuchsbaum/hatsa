@@ -155,7 +155,7 @@ run_hatsa_core <- function(subject_data_list, anchor_indices, spectral_rank_k,
                                                                   k_conn_pos, k_conn_neg, use_dtw)
       L_conn_i_sparse <- compute_graph_laplacian_sparse(W_conn_i_sparse)
 
-      sketch_result <- compute_spectral_sketch_sparse(L_conn_i_sparse, spectral_rank_k)
+      sketch_result <- compute_spectral_sketch_sparse(L_conn_i_sparse, spectral_rank_k, eigenvalue_tol = 1e-8)
       lambdas_i <- sketch_result$values
       gaps_i <- if (!is.null(lambdas_i) && length(lambdas_i) > 1) {
         denominators <- lambdas_i[-length(lambdas_i)]

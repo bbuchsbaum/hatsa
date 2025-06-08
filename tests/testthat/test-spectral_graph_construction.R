@@ -437,7 +437,7 @@ test_that("TCK-SGC-007: compute_spectral_sketch_sparse basic correctness & dimen
   # Function Call
   result <- NULL
   expect_no_error(
-    result <- compute_spectral_sketch_sparse(L_sparse, k = k_target)
+    result <- compute_spectral_sketch_sparse(L_sparse, k = k_target, eigenvalue_tol = 1e-8)
   )
   
   # Assertions
@@ -489,7 +489,7 @@ test_that("TCK-SGC-008: compute_spectral_sketch_sparse handles trivial eigenvect
   # Function Call
   result <- NULL
   expect_no_error(
-    result <- compute_spectral_sketch_sparse(L_path, k = k_target)
+    result <- compute_spectral_sketch_sparse(L_path, k = k_target, eigenvalue_tol = 1e-8)
   )
   
   # Assertions
@@ -540,7 +540,7 @@ test_that("TCK-SGC-009: compute_spectral_sketch_sparse handles rank deficiency",
 
   # Expect an error because we can only find 5 informative ones.
   expect_error(
-    compute_spectral_sketch_sparse(L_disconnected, k = k_target),
+    compute_spectral_sketch_sparse(L_disconnected, k = k_target, eigenvalue_tol = 1e-8),
     regexp = "Rank deficiency|too many zero eigenvalues|Found only.*informative eigenvectors.*but k=.*was requested" # Match potential error messages
   )
   
@@ -549,7 +549,7 @@ test_that("TCK-SGC-009: compute_spectral_sketch_sparse handles rank deficiency",
   # So, the function should still error because 4 < 5.
   k_target_boundary = num_non_zero_eigenvals # Request 5
   expect_error(
-    compute_spectral_sketch_sparse(L_disconnected, k = k_target_boundary),
+    compute_spectral_sketch_sparse(L_disconnected, k = k_target_boundary, eigenvalue_tol = 1e-8),
     regexp = "Rank deficiency|too many zero eigenvalues|Found only.*informative eigenvectors.*but k=.*was requested",
     info=paste("Boundary case k=", k_target_boundary, "should error if eigs_sym doesn't return enough.")
   )
@@ -571,7 +571,7 @@ test_that("TCK-SGC-010: compute_spectral_sketch_sparse edge cases k=0, k=1", {
   # --- Test k = 0 --- 
   result_k0 <- NULL
   expect_no_error(
-    result_k0 <- compute_spectral_sketch_sparse(L_path, k = 0)
+    result_k0 <- compute_spectral_sketch_sparse(L_path, k = 0, eigenvalue_tol = 1e-8)
   )
   
   # Assertions for k=0
@@ -587,7 +587,7 @@ test_that("TCK-SGC-010: compute_spectral_sketch_sparse edge cases k=0, k=1", {
   k_target_1 <- 1
   result_k1 <- NULL
   expect_no_error(
-    result_k1 <- compute_spectral_sketch_sparse(L_path, k = k_target_1)
+    result_k1 <- compute_spectral_sketch_sparse(L_path, k = k_target_1, eigenvalue_tol = 1e-8)
   )
   
   # Assertions for k=1

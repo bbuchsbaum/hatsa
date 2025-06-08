@@ -326,7 +326,7 @@ This phase addresses feedback from a detailed code review of the Nyström voxel 
     *   Review of `compute_spectral_sketch_sparse` confirms the following (updated for `L_rw_lazy`):
         *   The function calculates eigenvectors for the symmetric alpha-lazy random-walk normalized Laplacian (`L_rw_lazy`).
         *   Eigenvectors are sorted by their eigenvalues (smallest first).
-        *   An `eigenvalue_tol` (1e-8) is used to identify and **explicitly remove** eigenvectors associated with the smallest eigenvalues (corresponding to the graph's trivial/DC component(s)).
+        *   An `eigenvalue_tol` argument (default `1e-8`) is used to identify and **explicitly remove** eigenvectors associated with the smallest eigenvalues (corresponding to the graph's trivial/DC component(s)).
         *   The final `k` components selected are the first `k` from this filtered set of "non-trivial" eigenvectors.
     *   Therefore, the `spectral_rank_k` parameter in HATSA effectively requests `k` **non-DC components** derived from `L_rw_lazy`.
     *   The `U_orig_parcel` and `Lambda_orig_parcel` passed to `compute_voxel_basis_nystrom` are indeed the intended non-DC components.
