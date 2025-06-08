@@ -454,6 +454,20 @@ test_that("TCK-SGC-006: compute_graph_laplacian_sparse handles zero degree nodes
   expect_equal(output_L[-3, 3], c(0, 0, 0)) # Col 3, excluding diagonal
 })
 
+# Test TCK-SGC-006B: Non-symmetric input should error
+test_that("TCK-SGC-006B: compute_graph_laplacian_sparse errors for non-symmetric input", {
+  skip_if_not_installed("Matrix")
+  library(Matrix)
+
+  # Create a simple non-symmetric adjacency matrix
+  W_ns <- sparseMatrix(i = c(1, 2), j = c(2, 3), x = c(1, 1), dims = c(3, 3))
+
+  expect_error(
+    compute_graph_laplacian_sparse(W_ns),
+    regexp = "W_sparse must be symmetric"
+  )
+})
+
 # Test TCK-SGC-007: compute_spectral_sketch_sparse - Basic Correctness & Dimensions
 test_that("TCK-SGC-007: compute_spectral_sketch_sparse basic correctness & dimensions", {
   skip_if_not_installed("Matrix")
