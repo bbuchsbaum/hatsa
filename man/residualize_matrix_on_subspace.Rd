@@ -8,11 +8,12 @@ residualize_matrix_on_subspace(matrix_to_residualize, subspace_basis_matrix)
 }
 \arguments{
 \item{matrix_to_residualize}{A numeric matrix (e.g., `C x k`) whose rows
-are to be residualized. If sparse (from `Matrix` package), will be coerced to dense.
-A warning is issued if the matrix is very large (`C*k > 1e7`).}
+are to be residualized. Sparse \code{Matrix} inputs are handled without full
+densification. A warning is issued if the matrix is very large (`C*k > 1e7`).}
 
 \item{subspace_basis_matrix}{A numeric matrix (e.g., `m x k`) whose rows
-span the subspace to project out. If sparse, will be coerced to dense.}
+span the subspace to project out. Sparse matrices are accepted and processed
+with \code{Matrix} linear algebra.}
 }
 \value{
 A numeric matrix with the same dimensions as `matrix_to_residualize`,
@@ -22,7 +23,8 @@ A numeric matrix with the same dimensions as `matrix_to_residualize`,
 Residualizes the rows of `matrix_to_residualize` with respect to
   the row space of `subspace_basis_matrix`. This is equivalent to projecting
   each column of `t(matrix_to_residualize)` onto the column space of
-  `t(subspace_basis_matrix)` and taking the residuals.
+  `t(subspace_basis_matrix)` and taking the residuals. Sparse inputs are
+  handled with \code{Matrix} routines and the returned matrix is dense.
 }
 \examples{
 # Z_i: 3 conditions, 5-dimensional spectral space (3x5)
@@ -35,5 +37,9 @@ if (nrow(A_parc_i) > 0 && ncol(A_parc_i) > 0 && qr(t(A_parc_i))$rank > 0) {
   # Test orthogonality: Z_i_res \%*\% t(A_parc_i) should be near zero
   print(round(Z_i_res \%*\% t(A_parc_i), 10))
 }
+# Sparse example
+Z_sp <- Matrix::rsparsematrix(3, 5, 0.3)
+A_sp <- Matrix::rsparsematrix(2, 5, 0.3)
+residualize_matrix_on_subspace(Z_sp, A_sp)
 
 }

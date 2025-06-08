@@ -1,16 +1,21 @@
 #' @title Project Features onto a Spectral Basis
 #' @description Projects a feature matrix onto a given spectral basis. Handles potential
 #'   transposition of the feature matrix and uses the appropriate orthogonal projection
-#'   formula based on whether the basis is orthonormal.
+#'   formula based on whether the basis is orthonormal. Sparse inputs are processed
+#'   with `Matrix` methods so that large matrices need not be fully densified. The
+#'   returned matrix is always dense.
 #'
 #' @param feature_matrix A numeric matrix representing features. It can be in
 #'   `V_p x C` format (parcels x features/conditions) or `C x V_p` format.
 #'   The function will attempt to orient it correctly based on `U_basis`.
-#'   If `feature_matrix` is a sparse matrix (from `Matrix` package) and large
-#'   (e.g., `prod(dim(.)) > 1e7`), the function will stop; otherwise, it's coerced to dense.
+#'   If `feature_matrix` is a sparse `Matrix`, operations use sparse methods
+#'   when possible (coercion occurs only for small intermediate matrices).
+#'   Very large sparse inputs (`prod(dim(.)) > 1e7`) trigger an error to avoid
+#'   accidental densification.
 #' @param U_basis A numeric matrix representing the spectral basis, typically with
 #'   dimensions `V_p x k_dims_basis` (parcels x basis dimensions).
-#'   If `U_basis` is a sparse matrix and large, the function will stop; otherwise, it's coerced to dense.
+#'   Sparse `U_basis` inputs are handled with `Matrix` methods. Extremely large
+#'   sparse bases also trigger an error to prevent densification.
 #' @param tol_orthonormal A numeric tolerance to check for orthonormality of `U_basis`.
 #'   `max(abs(crossprod(U_basis) - I)) / k_dims_basis` is compared against this tolerance.
 #'   Default is `sqrt(.Machine$double.eps)`.
@@ -40,6 +45,11 @@
 #' proj1_non_ortho <- project_features_to_spectral_space(features1, U_basis_non_ortho)
 #' print(dim(proj1_non_ortho))
 #'
+#' # Sparse input example
+#' features_sp <- Matrix::rsparsematrix(V_p, C, 0.2)
+#' proj_sp <- project_features_to_spectral_space(features_sp, U_basis_ortho)
+#' print(class(proj_sp))
+#'
 #' # Ambiguous square matrix error
 #' V_p_sq <- 7
 #' U_basis_sq <- matrix(rnorm(V_p_sq*k_dims), V_p_sq, k_dims)
@@ -56,24 +66,22 @@ project_features_to_spectral_space <- function(feature_matrix, U_basis,
                                              assume_orthonormal = FALSE) {
   # Sparse matrix handling with size guard
   sparse_size_threshold <- 1e7 # Heuristic for "large"
-  if (inherits(feature_matrix, "sparseMatrix")) {
-    if (prod(dim(feature_matrix)) > sparse_size_threshold) {
-      stop("feature_matrix is a large sparse Matrix; please convert to dense explicitly if memory allows, or use a sparse-aware projection method.")
-    }
-    feature_matrix <- as.matrix(feature_matrix)
+  feature_is_sparse <- inherits(feature_matrix, "sparseMatrix")
+  basis_is_sparse <- inherits(U_basis, "sparseMatrix")
+  if (feature_is_sparse && prod(dim(feature_matrix)) > sparse_size_threshold) {
+    stop("feature_matrix is a large sparse Matrix; please convert to dense explicitly if memory allows, or use a sparse-aware projection method.")
   }
-  if (inherits(U_basis, "sparseMatrix")) {
-    if (prod(dim(U_basis)) > sparse_size_threshold) {
-      stop("U_basis is a large sparse Matrix; please convert to dense explicitly if memory allows, or use a sparse-aware projection method.")
-    }
-    U_basis <- as.matrix(U_basis)
+  if (basis_is_sparse && prod(dim(U_basis)) > sparse_size_threshold) {
+    stop("U_basis is a large sparse Matrix; please convert to dense explicitly if memory allows, or use a sparse-aware projection method.")
   }
 
-  if (!is.matrix(feature_matrix) || !is.numeric(feature_matrix)) {
-    stop("feature_matrix must be a numeric matrix.")
+  if (!(is.matrix(feature_matrix) || inherits(feature_matrix, "Matrix")) ||
+      !is.numeric(feature_matrix)) {
+    stop("feature_matrix must be a numeric matrix or Matrix object.")
   }
-  if (!is.matrix(U_basis) || !is.numeric(U_basis)) {
-    stop("U_basis must be a numeric matrix.")
+  if (!(is.matrix(U_basis) || inherits(U_basis, "Matrix")) ||
+      !is.numeric(U_basis)) {
+    stop("U_basis must be a numeric matrix or Matrix object.")
   }
 
   V_p_basis <- nrow(U_basis)
@@ -145,7 +153,7 @@ project_features_to_spectral_space <- function(feature_matrix, U_basis,
     }
     UtU <- crossprod(U_basis)
     Id_k <- diag(k_dims_basis)
-    max_dev <- max(abs(UtU - Id_k))
+    max_dev <- max(abs(as.matrix(UtU) - Id_k))
     # Audit suggestion: Scale tolerance by k_dims_basis
     is_orthonormal <- max_dev < (tol_orthonormal * k_dims_basis)
   }
@@ -155,19 +163,20 @@ project_features_to_spectral_space <- function(feature_matrix, U_basis,
     projected_features_internal <- crossprod(U_basis, fm_oriented)
   } else {
     if (is.null(UtU)) UtU <- crossprod(U_basis) # Should be calculated if !assume_orthonormal
-    
+
     projected_features_internal <- tryCatch({
       # Using UtU in qr.solve for (U^T U)^-1 U^T X form
-      qr.solve(UtU, crossprod(U_basis, fm_oriented), tol = tol_orthonormal * k_dims_basis) 
+      qr.solve(as.matrix(UtU), as.matrix(crossprod(U_basis, fm_oriented)),
+               tol = tol_orthonormal * k_dims_basis)
     }, error = function(e) {
       stop(paste("Error in qr.solve, likely UtU is singular or ill-conditioned (U_basis may be rank-deficient, or k_dims_basis > V_p_basis and U_basis not full rank). Original error:", e$message))
     })
   }
 
   if (input_was_transposed) {
-    return(t(projected_features_internal)) 
+    return(as.matrix(t(projected_features_internal)))
   } else {
-    return(projected_features_internal) 
+    return(as.matrix(projected_features_internal))
   }
 }
 
@@ -175,13 +184,16 @@ project_features_to_spectral_space <- function(feature_matrix, U_basis,
 #' @description Residualizes the rows of `matrix_to_residualize` with respect to
 #'   the row space of `subspace_basis_matrix`. This is equivalent to projecting
 #'   each column of `t(matrix_to_residualize)` onto the column space of
-#'   `t(subspace_basis_matrix)` and taking the residuals.
+#'   `t(subspace_basis_matrix)` and taking the residuals. Sparse inputs are
+#'   processed with `Matrix` routines and the result is returned as a dense
+#'   matrix.
 #'
 #' @param matrix_to_residualize A numeric matrix (e.g., `C x k`) whose rows
-#'   are to be residualized. If sparse (from `Matrix` package), will be coerced to dense.
-#'   A warning is issued if the matrix is very large (`C*k > 1e7`).
+#'   are to be residualized. Sparse `Matrix` inputs are handled without full
+#'   densification. A warning is issued if the matrix is very large (`C*k > 1e7`).
 #' @param subspace_basis_matrix A numeric matrix (e.g., `m x k`) whose rows
-#'   span the subspace to project out. If sparse, will be coerced to dense.
+#'   span the subspace to project out. Sparse matrices are accepted and processed
+#'   with `Matrix` linear algebra.
 #'
 #' @return A numeric matrix with the same dimensions as `matrix_to_residualize`,
 #'   containing the residualized rows.
@@ -198,22 +210,24 @@ project_features_to_spectral_space <- function(feature_matrix, U_basis,
 #'   # Test orthogonality: Z_i_res %*% t(A_parc_i) should be near zero
 #'   print(round(Z_i_res %*% t(A_parc_i), 10))
 #' }
+#' # Sparse example
+#' Z_sp <- Matrix::rsparsematrix(3, 5, 0.3)
+#' A_sp <- Matrix::rsparsematrix(2, 5, 0.3)
+#' residualize_matrix_on_subspace(Z_sp, A_sp)
 #'
 residualize_matrix_on_subspace <- function(matrix_to_residualize, subspace_basis_matrix) {
   large_matrix_threshold <- 1e7 # Heuristic for C*k
 
-  if (inherits(matrix_to_residualize, "sparseMatrix")) {
-    matrix_to_residualize <- as.matrix(matrix_to_residualize)
-  }
-  if (inherits(subspace_basis_matrix, "sparseMatrix")) {
-    subspace_basis_matrix <- as.matrix(subspace_basis_matrix)
-  }
+  matrix_is_sparse <- inherits(matrix_to_residualize, "sparseMatrix")
+  basis_is_sparse <- inherits(subspace_basis_matrix, "sparseMatrix")
 
-  if (!is.matrix(matrix_to_residualize) || !is.numeric(matrix_to_residualize)) {
-    stop("matrix_to_residualize must be a numeric matrix.")
+  if (!(is.matrix(matrix_to_residualize) || inherits(matrix_to_residualize, "Matrix")) ||
+      !is.numeric(matrix_to_residualize)) {
+    stop("matrix_to_residualize must be a numeric matrix or Matrix object.")
   }
-  if (!is.matrix(subspace_basis_matrix) || !is.numeric(subspace_basis_matrix)) {
-    stop("subspace_basis_matrix must be a numeric matrix.")
+  if (!(is.matrix(subspace_basis_matrix) || inherits(subspace_basis_matrix, "Matrix")) ||
+      !is.numeric(subspace_basis_matrix)) {
+    stop("subspace_basis_matrix must be a numeric matrix or Matrix object.")
   }
 
   k_dim_Y <- ncol(matrix_to_residualize)
@@ -247,7 +261,7 @@ residualize_matrix_on_subspace <- function(matrix_to_residualize, subspace_basis
   if (any(!is.finite(X_eff))) stop("subspace_basis_matrix (after transpose) contains non-finite values.")
   if (any(!is.finite(Y_eff))) stop("matrix_to_residualize (after transpose) contains non-finite values.")
   
-  qr_X_eff <- qr(X_eff)
+  qr_X_eff <- Matrix::qr(X_eff)
   
   if (qr_X_eff$rank == 0) {
       return(matrix_to_residualize) 
@@ -259,9 +273,9 @@ residualize_matrix_on_subspace <- function(matrix_to_residualize, subspace_basis
   }
   
   # TODO: Consider orientation switch for big k_dim_Y > C_dim_Y if performance critical
-  residuals_eff <- qr.resid(qr_X_eff, Y_eff)
+  residuals_eff <- Matrix::qr.resid(qr_X_eff, Y_eff)
 
-  return(t(residuals_eff))
+  return(as.matrix(t(residuals_eff)))
 }
 
 #' @title Build Augmented Anchor Matrix

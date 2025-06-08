@@ -15,12 +15,14 @@ project_features_to_spectral_space(
 \item{feature_matrix}{A numeric matrix representing features. It can be in
 `V_p x C` format (parcels x features/conditions) or `C x V_p` format.
 The function will attempt to orient it correctly based on `U_basis`.
-If `feature_matrix` is a sparse matrix (from `Matrix` package) and large
-(e.g., `prod(dim(.)) > 1e7`), the function will stop; otherwise, it's coerced to dense.}
+Sparse `Matrix` inputs are handled with sparse-aware linear algebra and only
+small intermediate matrices are densified. Very large sparse inputs
+(`prod(dim(.)) > 1e7`) result in an error.}
 
 \item{U_basis}{A numeric matrix representing the spectral basis, typically with
 dimensions `V_p x k_dims_basis` (parcels x basis dimensions).
-If `U_basis` is a sparse matrix and large, the function will stop; otherwise, it's coerced to dense.}
+Sparse `U_basis` inputs are handled similarly and extremely large sparse bases
+trigger an error to avoid densification.}
 
 \item{tol_orthonormal}{A numeric tolerance to check for orthonormality of `U_basis`.
 `max(abs(crossprod(U_basis) - I)) / k_dims_basis` is compared against this tolerance.
@@ -41,7 +43,8 @@ A numeric (dense) matrix containing the projected features.
 \description{
 Projects a feature matrix onto a given spectral basis. Handles potential
   transposition of the feature matrix and uses the appropriate orthogonal projection
-  formula based on whether the basis is orthonormal.
+  formula based on whether the basis is orthonormal. Sparse inputs are processed
+  with \code{Matrix} methods and the result is returned as a dense matrix.
 }
 \examples{
 V_p <- 10
@@ -56,6 +59,11 @@ proj1_ortho <- project_features_to_spectral_space(features1, U_basis_ortho)
 print(dim(proj1_ortho))
 proj1_non_ortho <- project_features_to_spectral_space(features1, U_basis_non_ortho)
 print(dim(proj1_non_ortho))
+
+# Sparse input example
+features_sp <- Matrix::rsparsematrix(V_p, C, 0.2)
+proj_sp <- project_features_to_spectral_space(features_sp, U_basis_ortho)
+print(class(proj_sp))
 
 # Ambiguous square matrix error
 V_p_sq <- 7
