@@ -651,7 +651,7 @@ frechet_mean_so_k <- function(R_list, k_dim = NULL, max_iter = 50, tol = 1e-7, i
       if (!is.null(tangent_i) && !all(tangent_i == 0)) {
         tangent_vectors_sum <- tangent_vectors_sum + tangent_i
         num_valid_tangents <- num_valid_tangents + 1
-      } else if (all(arg_logm == diag(k_dim))) {
+      } else if (max(abs(arg_logm - diag(k_dim))) < tol) {
         num_valid_tangents <- num_valid_tangents + 1
       } else {
         logm_failures <- logm_failures + 1

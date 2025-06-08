@@ -4,9 +4,10 @@
 \alias{message_stage}
 \title{Helper for status messages}
 \usage{
-message_stage(message_text, verbose = TRUE, interactive_only = FALSE)
+message_stage(message_text, interactive_only = FALSE)
 }
 \arguments{
+
 \item{message_text}{Text message to display.}
 \item{verbose}{Whether to print the message.}
 \item{interactive_only}{Print only in interactive mode.}

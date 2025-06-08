@@ -157,6 +157,7 @@ zscore_nonzero_sparse <- function(x) {
   return(x)
 }
 
+
 #' Helper for status messages
 #'
 #' Prints a timestamped stage message when \code{verbose} is TRUE. If
@@ -171,4 +172,14 @@ message_stage <- function(message_text, verbose = TRUE, interactive_only = FALSE
   if (interactive_only && !interactive()) return(invisible(NULL))
   message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-", message_text))
 }
+
+
+#' Null-coalescing operator
+#'
+#' Returns \code{x} if it is not \code{NULL}, otherwise \code{y}.
+#'
+#' @param x, y Values to compare.
+#' @keywords internal
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
 

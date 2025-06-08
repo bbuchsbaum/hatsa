@@ -160,7 +160,7 @@ These tickets now assume a more robust `task_hatsa` foundation after Part A tick
         -   [X] Returns a list including the tangent vectors (list of symmetric matrices), the mean, and the metric used.
     -   [ ] Plan for vectorization of tangent vectors for use in standard multivariate tools (e.g., as a helper or option).
     -   [ ] Consider `task_hatsa_projector` specific method or `NextMethod()`.
--   [X] **Function Signature & Logic:** (As detailed in `Riemanian_plan.md`, Section 7, and implemented in `R/riemannian_methods_hatsa.R`).
+-   [X] **Function Signature & Logic:** (As detailed in `Riemannian_plan.md`, Section 7, and implemented in `R/riemannian_methods_hatsa.R`).
 
 ---
 
