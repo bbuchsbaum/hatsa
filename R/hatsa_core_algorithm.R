@@ -232,13 +232,4 @@ run_hatsa_core <- function(subject_data_list, anchor_indices, spectral_rank_k,
   return(projector_object)
 }
 
-#' Helper for printing stage messages, optionally only in interactive sessions
-#' @param msg Message to print.
-#' @param interactive_only Logical, if TRUE, message only if session is interactive.
-#' @keywords internal
-message_stage <- function(msg, interactive_only = FALSE) {
-  if (interactive_only && !interactive()) {
-    return(invisible(NULL))
-  }
-  message(paste(Sys.time(), "-", msg))
-}
+# message_stage helper now lives in utils.R

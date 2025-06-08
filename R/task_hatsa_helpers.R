@@ -1110,18 +1110,5 @@ create_parameters_list <- function(args) {
     ))
 }
 
-#' Helper for status messages
-#'
-#' @param message_text Text message to display
-#' @param verbose Whether to print the message
-#' @param interactive_only Whether to print only in interactive mode
-#'
-#' @noRd
-message_stage <- function(message_text, verbose = TRUE, interactive_only = FALSE) {
-    if (verbose && (!interactive_only || interactive())) {
-        message(rep("-", nchar(message_text)))
-        message(message_text)
-        message(rep("-", nchar(message_text)))
-    }
-}
+# message_stage helper now lives in utils.R
 
