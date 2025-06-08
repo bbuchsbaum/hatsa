@@ -509,9 +509,6 @@ plot_mds_spd_subjects <- function(projector_object,
   ))
 }
 
-# Helper for null or default
-'%||%' <- function(a, b) if (is.null(a)) b else a
-
 # Make sure ggplot2 related imports are at the top of the file or in NAMESPACE
 # @importFrom ggplot2 ggplot aes geom_point geom_text geom_hline geom_vline labs theme_bw ggtitle
 # @importFrom stats cmdscale

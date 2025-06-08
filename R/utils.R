@@ -156,3 +156,23 @@ zscore_nonzero_sparse <- function(x) {
   }
   return(x)
 }
+
+#' Null-coalescing operator
+#'
+#' Returns \code{x} if it is not \code{NULL}, otherwise \code{y}.
+#'
+#' @param x, y Values to compare.
+#' @keywords internal
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
+#' Helper for printing stage messages, optionally only in interactive sessions
+#'
+#' @param message_text Message to print.
+#' @param interactive_only Logical, if \code{TRUE}, message only if session is interactive.
+#' @keywords internal
+message_stage <- function(message_text, interactive_only = FALSE) {
+  if (interactive_only && !interactive()) {
+    return(invisible(NULL))
+  }
+  message(paste(Sys.time(), "-", message_text))
+}

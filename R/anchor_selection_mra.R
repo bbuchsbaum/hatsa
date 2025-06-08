@@ -310,9 +310,3 @@ select_anchors_mra <- function(U_original_list_pilot,
 
   return(sort(selected_anchors))
 }
-
-# Helper for null or default in function (already in hatsa_qc_plots.R, define locally or ensure source)
-# Consider moving to a utils.R file if used commonly
-if (!exists("%||%", mode = "function")) {
-  `%||%` <- function(a, b) if (is.null(a)) b else a
-} 
