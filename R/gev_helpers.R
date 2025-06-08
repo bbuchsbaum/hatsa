@@ -15,6 +15,9 @@
 #'   positive definite for the solver. Default 1e-6.
 #' @param tol Numeric, tolerance for eigenvalue decomposition convergence.
 #'   Default 1e-8 (PRIMME's default is 1e-6, using slightly tighter).
+#' @param primme_which Character string passed to `PRIMME::eigs_sym` to
+#'   control which eigenvalues are computed. Defaults to
+#'   "primme_closest_abs" which targets the eigenvalues closest to zero.
 #' @param ... Additional arguments passed to `PRIMME::eigs_sym`.
 #'
 #' @return A list containing:
@@ -37,6 +40,7 @@ solve_gev_laplacian_primme <- function(A, B, k_request,
                                          lambda_max_thresh = 0.8,
                                          epsilon_reg_B = 1e-6,
                                          tol = 1e-8,
+                                         primme_which = "primme_closest_abs",
                                          ...) {
 
   if (!requireNamespace("PRIMME", quietly = TRUE)) {
@@ -70,14 +74,13 @@ solve_gev_laplacian_primme <- function(A, B, k_request,
   # Solve the generalized eigenvalue problem A*v = lambda*B_reg*v using PRIMME
   message_stage(sprintf("Solving generalized eigenvalue problem with PRIMME for %d components...", k_solve), interactive_only = TRUE)
   gev_result <- tryCatch({
-    # PRIMME uses 'SA' for Smallest Algebraic, 'SM' isn't directly listed but maps
-    # to 'primme_closest_abs' which defaults to targetShift=0. We want smallest lambda magnitude.
-    # Using targetShifts=0 and which="primme_closest_abs" seems most appropriate.
-    # Let's try which="SM" directly first as it seems intended to map
-    PRIMME::eigs_sym(A = A, NEig = k_solve, B = B_reg,
-                       which = "SM", 
-                       tol = tol,
-                       ...)
+    PRIMME::eigs_sym(
+      A = A,
+      NEig = k_solve,
+      B = B_reg,
+      which = primme_which,
+      tol = tol,
+      ...)
   }, error = function(e) {
     stop(paste("PRIMME generalized eigenvalue decomposition failed:", e$message))
   })
