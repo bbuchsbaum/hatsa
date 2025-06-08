@@ -235,6 +235,48 @@ test_that("TCK-SGC-011: compute_subject_connectivity_graph_sparse scales without
   )
 })
 
+# Test TCK-SGC-012: Input validation checks
+test_that("TCK-SGC-012: compute_subject_connectivity_graph_sparse validates inputs", {
+  skip_if_not_installed("Matrix")
+  library(Matrix)
+
+  X_small <- matrix(rnorm(10 * 3), ncol = 3)
+  p_names <- paste0("P", 1:3)
+
+  # parcel_names length mismatch
+  expect_error(
+    compute_subject_connectivity_graph_sparse(
+      X_subject = X_small,
+      parcel_names = p_names[-1],
+      k_conn_pos = 1,
+      k_conn_neg = 1
+    ),
+    "parcel_names"
+  )
+
+  # negative k_conn_pos
+  expect_error(
+    compute_subject_connectivity_graph_sparse(
+      X_subject = X_small,
+      parcel_names = p_names,
+      k_conn_pos = -1,
+      k_conn_neg = 1
+    ),
+    "k_conn_pos"
+  )
+
+  # non-integer k_conn_neg
+  expect_error(
+    compute_subject_connectivity_graph_sparse(
+      X_subject = X_small,
+      parcel_names = p_names,
+      k_conn_pos = 1,
+      k_conn_neg = 1.5
+    ),
+    "k_conn_neg"
+  )
+})
+
 # Test TCK-SGC-004: Symmetrization Logic
 test_that("TCK-SGC-004: Symmetrization rule application", {
   skip_if_not_installed("Matrix")

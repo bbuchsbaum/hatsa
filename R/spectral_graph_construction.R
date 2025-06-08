@@ -28,6 +28,17 @@ compute_subject_connectivity_graph_sparse <- function(X_subject, parcel_names,
                                                       k_conn_pos, k_conn_neg,
                                                       use_dtw = FALSE) {
   V_p <- ncol(X_subject)
+
+  if (length(parcel_names) != V_p) {
+    stop(sprintf("`parcel_names` must have length %d to match number of columns in `X_subject`.", V_p))
+  }
+  if (!is.numeric(k_conn_pos) || length(k_conn_pos) != 1 || k_conn_pos < 0 || k_conn_pos != round(k_conn_pos)) {
+    stop("`k_conn_pos` must be a non-negative integer.")
+  }
+  if (!is.numeric(k_conn_neg) || length(k_conn_neg) != 1 || k_conn_neg < 0 || k_conn_neg != round(k_conn_neg)) {
+    stop("`k_conn_neg` must be a non-negative integer.")
+  }
+
   if (V_p == 0) return(Matrix::Matrix(0, 0, 0, sparse = TRUE, dimnames = list(character(0), character(0))))
 
   if (use_dtw && interactive()) {
