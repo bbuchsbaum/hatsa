@@ -19,6 +19,7 @@
 #' @param k_conn_pos An integer, number of positive connections to retain per node.
 #' @param k_conn_neg An integer, number of negative connections to retain per node.
 #' @param use_dtw Logical, defaults to `FALSE`. (Placeholder).
+#' @details `X_subject` must contain at least two rows (time points).
 #' @return A sparse symmetric `Matrix::dgCMatrix` of size `V_p x V_p`
 #'   representing the z-scored connectivity graph `W_conn_i`.
 #' @importFrom Matrix Matrix sparseMatrix drop0 t forceSymmetric
@@ -41,11 +42,15 @@ compute_subject_connectivity_graph_sparse <- function(X_subject, parcel_names,
 
   if (V_p == 0) return(Matrix::Matrix(0, 0, 0, sparse = TRUE, dimnames = list(character(0), character(0))))
 
+  T_i <- nrow(X_subject)
+  if (T_i < 2) {
+    stop("`X_subject` must have at least two rows (time points).")
+  }
+
   if (use_dtw && interactive()) {
     message("Note: DTW is not yet implemented. Proceeding with standard correlations.")
   }
-  
-  T_i <- nrow(X_subject)
+
   col_means <- colMeans(X_subject, na.rm = TRUE)
   col_sds <- apply(X_subject, 2, stats::sd, na.rm = TRUE)
   zero_var_indices <- which(col_sds == 0)

@@ -30,6 +30,7 @@ A sparse symmetric `Matrix::dgCMatrix` of size `V_p x V_p`
 }
 \description{
 Calculates the sparse connectivity graph for a single subject.
+`X_subject` must contain at least two rows (time points).
 Steps:
 1. Compute pairwise Pearson correlations using a memory-efficient cross-product
    approach that avoids creating a dense `V_p \times V_p` matrix.

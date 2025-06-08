@@ -235,6 +235,7 @@ test_that("TCK-SGC-011: compute_subject_connectivity_graph_sparse scales without
   )
 })
 
+
 # Test TCK-SGC-012: Input validation checks
 test_that("TCK-SGC-012: compute_subject_connectivity_graph_sparse validates inputs", {
   skip_if_not_installed("Matrix")
@@ -274,6 +275,26 @@ test_that("TCK-SGC-012: compute_subject_connectivity_graph_sparse validates inpu
       k_conn_neg = 1.5
     ),
     "k_conn_neg"
+})
+  
+  
+# Test TCK-SGC-012: Input must have at least two rows
+test_that("TCK-SGC-012: compute_subject_connectivity_graph_sparse requires >=2 rows", {
+  skip_if_not_installed("Matrix")
+  library(Matrix)
+
+  X_ts <- matrix(rnorm(5), nrow = 1, ncol = 5)
+  p_names <- paste0("P", 1:5)
+
+  expect_error(
+    compute_subject_connectivity_graph_sparse(
+      X_subject = X_ts,
+      parcel_names = p_names,
+      k_conn_pos = 1,
+      k_conn_neg = 1,
+      use_dtw = FALSE
+    ),
+    regexp = "at least two rows"
   )
 })
 
