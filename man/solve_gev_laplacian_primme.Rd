@@ -11,6 +11,7 @@ solve_gev_laplacian_primme(
   lambda_max_thresh = 0.8,
   epsilon_reg_B = 1e-06,
   tol = 1e-08,
+  primme_which = "primme_closest_abs",
   ...
 )
 }
@@ -31,6 +32,10 @@ positive definite for the solver. Default 1e-6.}
 
 \item{tol}{Numeric, tolerance for eigenvalue decomposition convergence.
 Default 1e-8 (PRIMME's default is 1e-6, using slightly tighter).}
+
+\item{primme_which}{Character string passed to \code{PRIMME::eigs_sym} to
+control which eigenvalues are computed. Defaults to \code{"primme_closest_abs"}
+which targets eigenvalues closest to zero.}
 
 \item{...}{Additional arguments passed to `PRIMME::eigs_sym`.}
 }
