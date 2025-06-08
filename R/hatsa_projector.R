@@ -540,19 +540,6 @@ summary.hatsa_projector <- function(object, ...,
     N_valid_subj_for_rot <- length(Rs_valid)
 
     if (N_valid_subj_for_rot > 1) {
-      # Helper for geodesic distance d(R1, R2) = ||logm(R1^T R2)||_F / sqrt(2)
-      geodesic_dist_so_k <- function(R1, R2) {
-        if (!requireNamespace("expm", quietly = TRUE)) {
-          warning("Package 'expm' needed for geodesic_dist_so_k.")
-          return(NA)
-        }
-        R1t_R2 <- t(R1) %*% R2
-        log_R1t_R2 <- tryCatch(expm::logm(R1t_R2, method="Higham08.b"), error = function(e) {
-          warning("Error in expm::logm: ", e$message)
-          return(matrix(0, k_dim, k_dim))
-        })
-        return(norm(log_R1t_R2, type = "F") / sqrt(2))
-      }
 
       # Use tryCatch to safely attempt to compute Frechet mean
       R_bar <- tryCatch({
@@ -686,8 +673,6 @@ summary.hatsa_projector <- function(object, ...,
   return(summary_info)
 }
 
-# Define %||% operator if it doesn't exist
-`%||%` <- function(x, y) if (is.null(x)) y else x
 
 #' Print method for summary.hatsa_projector objects
 #'

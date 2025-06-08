@@ -156,3 +156,39 @@ zscore_nonzero_sparse <- function(x) {
   }
   return(x)
 }
+#' Geodesic Distance on SO(k)
+#'
+#' Compute the geodesic distance between two k x k rotation matrices.
+#'
+#' @param R1,R2 Rotation matrices of the same dimension.
+#' @return Numeric scalar distance or NA if unavailable.
+#' @keywords internal
+geodesic_dist_so_k <- function(R1, R2) {
+  if (!requireNamespace("expm", quietly = TRUE)) {
+    warning("Package 'expm' needed for geodesic_dist_so_k.")
+    return(NA_real_)
+  }
+  if (!is.matrix(R1) || !is.matrix(R2) || !all(dim(R1) == dim(R2))) {
+    warning("R1 and R2 must be matrices of the same dimensions.")
+    return(NA_real_)
+  }
+  k_dim <- nrow(R1)
+  R1t_R2 <- t(R1) %*% R2
+  log_R1t_R2 <- tryCatch(expm::logm(R1t_R2, method = "Higham08.b"),
+                         error = function(e) {
+                           warning("Error in expm::logm: ", e$message)
+                           matrix(0, k_dim, k_dim)
+                         })
+  norm(log_R1t_R2, type = "F") / sqrt(2)
+}
+
+#' Null coalescing operator
+#'
+#' Returns `y` if `x` is `NULL`.
+#'
+#' @param x Primary value.
+#' @param y Fallback value.
+#' @return `x` if not `NULL`, otherwise `y`.
+#' @keywords internal
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
