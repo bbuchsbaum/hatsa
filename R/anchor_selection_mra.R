@@ -166,60 +166,19 @@ select_anchors_mra <- function(U_original_list_pilot,
         valid_spd_list <- Filter(Negate(is.null), spd_list_pilot)
         
         if (length(valid_spd_list) > 1) {
-            # Ensure all SPD matrices are k x k
             valid_spd_list <- Filter(function(S) is.matrix(S) && all(dim(S) == c(k_spectral_rank, k_spectral_rank)), valid_spd_list)
             if (length(valid_spd_list) > 1) {
                 disp_opts <- riemannian_dispersion_options
-                # Construct a temporary projector-like object or pass list directly if API allows
-                # For now, assuming riemannian_dispersion_spd can take a raw list of SPDs if object=NULL
-                # This requires modification to riemannian_dispersion_spd or a new helper.
-                # HACK: Create minimal list structure that riemannian_dispersion_spd might accept if it looks for object$N_subjects
-                # This is not ideal. Better: riemannian_dispersion_spd should have a method for lists.
-                # For now, let's assume we pass to a conceptual helper: calculate_dispersion_for_spd_list(valid_spd_list, disp_opts)
-                # For a quick implementation, let's assume riemannian_dispersion_spd can be adapted or we use a direct calc:
-                
-                # Placeholder for direct calculation if riemannian_dispersion_spd cannot be easily used:
-                # 1. Compute Frechet mean of valid_spd_list (e.g., using hatsa::frechet_mean_spd)
-                # 2. Compute sum of squared distances to mean.
-                # This is simplified here. Proper use of riemannian_dispersion_spd is preferred.
-                
-                # Simulate calling riemannian_dispersion_spd (needs a method for raw lists or dummy object)
-                # This is a temporary workaround. The actual call would depend on how `riemannian_dispersion_spd` can handle raw SPD lists.
-                # We will assume for now it fails gracefully if it cannot. The ticket implies using it.
-                dummy_projector_for_disp <- list(
-                    parameters = list(N_subjects = length(valid_spd_list)),
-                    # get_spd_representations would be mocked to return valid_spd_list
-                    # This part needs careful handling based on actual API of riemannian_dispersion_spd
-                    .get_spd_representations_output = valid_spd_list # Internal convention for this example
+                disp_opts$verbose <- FALSE
+                dispersion_results <- tryCatch(
+                    do.call(riemannian_dispersion_spd, c(list(valid_spd_list), disp_opts)),
+                    error = function(e) NULL
                 )
-                class(dummy_projector_for_disp) <- "hatsa_projector" # To satisfy S3 dispatch if needed
-
-                current_disp_opts <- riemannian_dispersion_options
-                current_disp_opts$object <- NULL # Indicate we are providing spd_matrices_list directly
-                current_disp_opts$spd_matrices_list <- valid_spd_list
-                current_disp_opts$verbose <- FALSE # Suppress verbose from internal call usually
-
-                # Need to ensure riemannian_dispersion_spd can accept spd_matrices_list
-                # if object is NULL. This is a new requirement for that function.
-                # For now, let's assume a direct calculation for simplicity of MRA-select draft:
-                if (length(valid_spd_list) > 1) {
-                    mean_spd <- tryCatch(hatsa::frechet_mean_spd(valid_spd_list, 
-                                                                metric = current_disp_opts$spd_metric %||% "logeuclidean",
-                                                                tol = current_disp_opts$frechet_tol %||% 1e-7,
-                                                                max_iter = current_disp_opts$frechet_max_iter %||% 50,
-                                                                verbose = FALSE), error = function(e) NULL)
-                    if (!is.null(mean_spd)){
-                        distances_sq <- sapply(valid_spd_list, function(S_i) {
-                            dist_val <- tryCatch(hatsa::riemannian_distance_spd(S_i, mean_spd, 
-                                                                             metric=current_disp_opts$spd_metric %||% "logeuclidean", 
-                                                                             epsilon = current_disp_opts$spd_regularize_epsilon %||% 1e-6)^2,
-                                                 error = function(e) NA)
-                            return(dist_val)
-                        })
-                        dispersion_val <- mean(na.omit(distances_sq)) # Mean squared distance
-                        if(is.nan(dispersion_val)) dispersion_val <- Inf
-                    } else { dispersion_val <- Inf }
-                } else { dispersion_val <- Inf }
+                if (!is.null(dispersion_results) && is.finite(dispersion_results$mean_dispersion)) {
+                    dispersion_val <- dispersion_results$mean_dispersion
+                } else {
+                    dispersion_val <- Inf
+                }
             } else { dispersion_val <- Inf }
         } else { dispersion_val <- Inf }
     }
