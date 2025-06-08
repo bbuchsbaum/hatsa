@@ -8,8 +8,25 @@
 #' @return Orthogonal rotation matrix `R_i` (`k x k`) with `det(R_i) = 1`.
 #' @keywords internal
 solve_procrustes_rotation <- function(A_orig_subj_anchor, T_anchor_group) {
-  k_dim <- ncol(A_orig_subj_anchor) 
-  if (k_dim == 0) return(matrix(0,0,0)) 
+  if (!is.matrix(A_orig_subj_anchor) || !is.numeric(A_orig_subj_anchor)) {
+      stop("A_orig_subj_anchor must be a numeric matrix")
+  }
+  if (!is.matrix(T_anchor_group) || !is.numeric(T_anchor_group)) {
+      stop("T_anchor_group must be a numeric matrix")
+  }
+  if (nrow(A_orig_subj_anchor) != nrow(T_anchor_group) ||
+      ncol(A_orig_subj_anchor) != ncol(T_anchor_group)) {
+      stop("A_orig_subj_anchor and T_anchor_group must have matching dimensions")
+  }
+  if (!all(is.finite(A_orig_subj_anchor))) {
+      stop("A_orig_subj_anchor contains non-finite values")
+  }
+  if (!all(is.finite(T_anchor_group))) {
+      stop("T_anchor_group contains non-finite values")
+  }
+
+  k_dim <- ncol(A_orig_subj_anchor)
+  if (k_dim == 0) return(matrix(0,0,0))
 
   M <- crossprod(A_orig_subj_anchor, T_anchor_group) 
   
