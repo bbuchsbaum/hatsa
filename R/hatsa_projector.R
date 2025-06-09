@@ -40,7 +40,7 @@
 #'
 #' @return A `hatsa_projector` object.
 #'
-#' @seealso \code{\link{run_hatsa_core}}, \code{\link{predict.hatsa_projector}}, \code{\link{project_voxels.hatsa_projector}}
+#' @seealso \code{\link{predict.hatsa_projector}}, \code{\link{project_voxels.hatsa_projector}}
 #' @name hatsa_projector
 NULL # This NULL is important for roxygen2 to generate class documentation
 

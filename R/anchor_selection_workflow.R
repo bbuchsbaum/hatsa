@@ -54,11 +54,11 @@ discover_optimal_anchors <- function(training_data,
   if (verbose) message("\n1. Computing pilot decompositions...")
   
   # Run initial HATSA on pilot data to get U matrices
-  pilot_result <- run_hatsa_core(
-    subject_data_list = pilot_data,
-    anchor_indices = seq_len(min(n_anchors * 2, ncol(pilot_data[[1]]))),
-    spectral_rank_k = n_components,
-    n_refine = 1  # Quick initial run
+  pilot_result <- hatsa(
+    data = pilot_data,
+    anchors = seq_len(min(n_anchors * 2, ncol(pilot_data[[1]]))),
+    components = n_components,
+    preset = "fast"  # Quick initial run
   )
   
   U_pilot_list <- pilot_result$U_original_list
@@ -118,11 +118,11 @@ discover_optimal_anchors <- function(training_data,
     anchors <- method_results[[method_name]]
     
     # Run HATSA with these anchors
-    result <- run_hatsa_core(
-      subject_data_list = training_data,
-      anchor_indices = anchors,
-      spectral_rank_k = n_components,
-      n_refine = 3
+    result <- hatsa(
+      data = training_data,
+      anchors = anchors,
+      components = n_components,
+      preset = "default"
     )
     
     # Compute quality metrics
@@ -226,10 +226,10 @@ validate_anchors <- function(data,
                              reference_metrics = NULL) {
   
   # Run HATSA with the anchors
-  result <- run_hatsa_core(
-    subject_data_list = data,
-    anchor_indices = anchor_indices,
-    spectral_rank_k = n_components
+  result <- hatsa(
+    data = data,
+    anchors = anchor_indices,
+    components = n_components
   )
   
   # Get metrics

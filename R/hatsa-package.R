@@ -11,7 +11,7 @@
 #' matrix operations for computational efficiency.
 #'
 #' @section Core HATSA Algorithm:
-#' The primary function is \code{\link{run_hatsa_core}}. It processes
+#' The primary function is \code{\link{hatsa}}. It processes
 #' subject-specific time-series data and alignment parameters to produce:
 #' \itemize{
 #'   \item Original spectral sketches for each subject.

@@ -253,8 +253,8 @@ task_hatsa <- function(
         }
     }
     
-    # Call the existing implementation with all parameters
-    run_task_hatsa(
+    # Call the internal engine with all parameters
+    .task_hatsa_engine(
         subject_data_list = subject_data_list,
         anchor_indices = anchor_indices,
         spectral_rank_k = spectral_rank_k,
@@ -288,10 +288,3 @@ task_hatsa <- function(
     )
 }
 
-# Backward-compatible wrapper that forwards to the internal engine
-#' @rdname task_hatsa
-#' @export
-run_task_hatsa <- function(...) {
-    .Deprecated("task_hatsa", msg = "run_task_hatsa() is kept for backward compatibility; new code should call task_hatsa()")
-    .task_hatsa_engine(...)
-}

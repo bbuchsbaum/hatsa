@@ -1,13 +1,13 @@
-# Test for end-to-end functionality of run_task_hatsa
+# Test for end-to-end functionality of task_hatsa
 # THFIX-007
 
-describe("Integration Test for run_task_hatsa", {
+describe("Integration Test for task_hatsa", {
 
-test_that("run_task_hatsa with core_hatsa method runs and produces valid output (sequential)", {
+test_that("task_hatsa with core_hatsa method runs and produces valid output (sequential)", {
   # Ensure future plan is sequential for this test block for deterministic behavior
-  # If future is used internally by run_task_hatsa, it should respect this.
-  # If run_task_hatsa itself sets a plan, this might be overridden.
-  # For now, assume we control the top-level plan or run_task_hatsa accepts it.
+  # If future is used internally by task_hatsa, it should respect this.
+  # If task_hatsa itself sets a plan, this might be overridden.
+  # For now, assume we control the top-level plan or task_hatsa accepts it.
   if (requireNamespace("future", quietly = TRUE)) {
     old_plan <- future::plan(future::sequential)
     on.exit(future::plan(old_plan), add = TRUE)
@@ -28,16 +28,16 @@ test_that("run_task_hatsa with core_hatsa method runs and produces valid output 
     subject_data_list_test[[i]] <- mat
   }
 
-  # 2. Parameters for run_task_hatsa
+  # 2. Parameters for task_hatsa
   anchor_indices_test <- 1:num_anchors_test
   
-  # Ensure all necessary parameters for run_task_hatsa are provided.
-  # It's assumed run_task_hatsa is available in the environment (e.g., via devtools::load_all())
+  # Ensure all necessary parameters for task_hatsa are provided.
+  # It's assumed task_hatsa is available in the environment (e.g., via devtools::load_all())
   
   # We'll call expect_no_error to catch any errors during the run
   result_core_hatsa <- NULL
   expect_no_error({
-    result_core_hatsa <- run_task_hatsa(
+    result_core_hatsa <- task_hatsa(
       subject_data_list = subject_data_list_test,
       task_data_list = NULL, # For core_hatsa method
       anchor_indices = anchor_indices_test,
@@ -54,7 +54,7 @@ test_that("run_task_hatsa with core_hatsa method runs and produces valid output 
   })
 
   # 3. Assertions
-  expect_true(!is.null(result_core_hatsa), "run_task_hatsa should return a non-NULL object.")
+  expect_true(!is.null(result_core_hatsa), "task_hatsa should return a non-NULL object.")
   expect_s3_class(result_core_hatsa, "task_hatsa_projector")
   expect_s3_class(result_core_hatsa, "hatsa_projector") # Inherits
 
@@ -145,7 +145,7 @@ test_that("run_task_hatsa with core_hatsa method runs and produces valid output 
 
 })
 
-test_that("run_task_hatsa with lambda_blend method runs and produces valid output (sequential)", {
+test_that("task_hatsa with lambda_blend method runs and produces valid output (sequential)", {
   if (requireNamespace("future", quietly = TRUE)) {
     old_plan <- future::plan(future::sequential)
     on.exit(future::plan(old_plan), add = TRUE)
@@ -209,7 +209,7 @@ test_that("run_task_hatsa with lambda_blend method runs and produces valid outpu
   result_lambda_blend <- NULL
 
   expect_no_error({
-    result_lambda_blend <- run_task_hatsa(
+    result_lambda_blend <- task_hatsa(
       subject_data_list = subject_data_list_test,
       task_data_list = task_data_list_test, 
       anchor_indices = anchor_indices_test,
@@ -226,7 +226,7 @@ test_that("run_task_hatsa with lambda_blend method runs and produces valid outpu
     )
   })
 
-  expect_true(!is.null(result_lambda_blend), "run_task_hatsa (lambda_blend) should return non-NULL.")
+  expect_true(!is.null(result_lambda_blend), "task_hatsa (lambda_blend) should return non-NULL.")
   expect_s3_class(result_lambda_blend, "task_hatsa_projector")
 
   # Basic parameter checks
@@ -306,7 +306,7 @@ test_that("run_task_hatsa with lambda_blend method runs and produces valid outpu
 
 # TODO THFIX-007 Task 3: Test with future_plan = "multisession" if appropriate and stable
 
-test_that("run_task_hatsa with core_hatsa method runs with future_plan = 'multisession'", {
+test_that("task_hatsa with core_hatsa method runs with future_plan = 'multisession'", {
   if (!requireNamespace("future", quietly = TRUE)) {
     skip("future package not available, skipping multisession test.")
   }
@@ -335,7 +335,7 @@ test_that("run_task_hatsa with core_hatsa method runs with future_plan = 'multis
 
   result_multisession <- NULL
   expect_no_error({
-    result_multisession <- run_task_hatsa(
+    result_multisession <- task_hatsa(
       subject_data_list = subject_data_list_test,
       task_data_list = NULL, 
       anchor_indices = anchor_indices_test,
@@ -353,7 +353,7 @@ test_that("run_task_hatsa with core_hatsa method runs with future_plan = 'multis
   })
 
   # 3. Assertions (identical structure to the sequential core_hatsa test)
-  expect_true(!is.null(result_multisession), "run_task_hatsa (multisession) should return non-NULL.")
+  expect_true(!is.null(result_multisession), "task_hatsa (multisession) should return non-NULL.")
   expect_s3_class(result_multisession, "task_hatsa_projector")
   expect_s3_class(result_multisession, "hatsa_projector")
 

@@ -7,7 +7,7 @@
 #' @param anchors Either "auto" for automatic selection, or a vector of anchor indices
 #' @param components Number of spectral components (default: 20)
 #' @param preset Configuration preset: "default", "fast", or "accurate"
-#' @param ... Additional parameters passed to run_hatsa_core
+#' @param ... Additional parameters passed to the internal HATSA engine
 #'
 #' @return A hatsa_projector object with convenience methods
 #'
@@ -46,14 +46,21 @@ hatsa <- function(data,
   params <- utils::modifyList(config, list(...))
   
   # Call the core function with cleaned up parameters
-  do.call(run_hatsa_core, c(
-    list(
-      subject_data_list = data,
-      anchor_indices = anchors,
-      spectral_rank_k = components
-    ),
-    params
-  ))
+  # For now, use task_hatsa with core_hatsa method for basic HATSA
+  result <- .task_hatsa_engine(
+    subject_data_list = data,
+    anchor_indices = anchors,
+    spectral_rank_k = components,
+    task_method = "core_hatsa",
+    task_data_list = NULL,
+    k_conn_pos = params$k_conn_pos,
+    k_conn_neg = params$k_conn_neg,
+    n_refine = params$n_refine,
+    alpha_laplacian = params$alpha_lrw %||% 0.93,
+    verbose = params$verbose %||% TRUE
+  )
+  
+  return(result)
 }
 
 #' Task-Informed HATSA Interface
@@ -67,7 +74,7 @@ hatsa <- function(data,
 #' @param components Number of spectral components (default: 20)
 #' @param method Task incorporation method: "auto", "blend", "gev", or "augmented"
 #' @param preset Configuration preset: "default", "fast", or "accurate"
-#' @param ... Additional parameters passed to run_task_hatsa
+#' @param ... Additional parameters passed to the internal task HATSA engine
 #'
 #' @return A task_hatsa_projector object
 #'

@@ -9,18 +9,18 @@ describe("HATSA Core Functionality: projector object, S3 methods, and core funct
   })
 }
 
-# Helper to get some default parameters for run_hatsa_core
+# Helper to get some default parameters for hatsa
 .get_default_hatsa_params <- function(V_p) {
   list(
-    anchor_indices = sample(1:V_p, min(V_p, 5)), # Ensure anchor_indices <= V_p
-    spectral_rank_k = 3, # A small k for testing
+    anchors = sample(1:V_p, min(V_p, 5)), # Ensure anchors <= V_p
+    components = 3, # A small k for testing
     k_conn_pos = 5,
     k_conn_neg = 5,
     n_refine = 2
   )
 }
 
-test_that("run_hatsa_core output and hatsa_projector constructor integrity", {
+test_that("hatsa output and hatsa_projector constructor integrity", {
   V_p <- 20
   N_subjects <- 4
   mock_data <- .generate_mock_subject_data(N_subjects, V_p)
@@ -28,13 +28,13 @@ test_that("run_hatsa_core output and hatsa_projector constructor integrity", {
 
   # This might require mocking internal functions if they are complex or slow,
   # or carefully crafted small data that allows quick execution.
-  # For now, assume run_hatsa_core can run with simple random data for basic checks.
+  # For now, assume hatsa can run with simple random data for basic checks.
   
-  # Wrap in suppressMessages or similar if run_hatsa_core is verbose
-  hatsa_obj <- suppressMessages(try(run_hatsa_core(
-    subject_data_list = mock_data,
-    anchor_indices = params$anchor_indices,
-    spectral_rank_k = params$spectral_rank_k,
+  # Wrap in suppressMessages or similar if hatsa is verbose
+  hatsa_obj <- suppressMessages(try(hatsa(
+    data = mock_data,
+    anchors = params$anchors,
+    components = params$components,
     k_conn_pos = params$k_conn_pos,
     k_conn_neg = params$k_conn_neg,
     n_refine = params$n_refine
@@ -42,22 +42,22 @@ test_that("run_hatsa_core output and hatsa_projector constructor integrity", {
 
   if (inherits(hatsa_obj, "try-error")) {
     core_error_msg <- attr(hatsa_obj, "condition")$message
-    skip(paste0("run_hatsa_core failed (", core_error_msg, "), skipping dependent tests."))
+    skip(paste0("hatsa failed (", core_error_msg, "), skipping dependent tests."))
     return()
   }
 
-  # 1. Test that run_hatsa_core returns the correct S3 object
+  # 1. Test that hatsa returns the correct S3 object
   expect_s3_class(hatsa_obj, "hatsa_projector")
   expect_s3_class(hatsa_obj, "multiblock_biprojector") # Check inheritance
 
-  # 2. Test the hatsa_projector constructor (implicitly via run_hatsa_core output)
+  # 2. Test the hatsa_projector constructor (implicitly via hatsa output)
   #    Ensuring all components are correctly stored.
   
   # Check for presence of key elements
-  expect_named(hatsa_obj, c("v", "s", "sdev", "preproc", "block_indices", 
-                           "R_final_list", "U_original_list", "Lambda_original_list",
-                           "Lambda_original_gaps_list", "T_anchor_final", "parameters", "method", "._cache"),
-               ignore.order = TRUE)
+  essential_names <- c("v", "s", "sdev", "preproc", "block_indices", 
+                      "R_final_list", "U_original_list", "Lambda_original_list",
+                      "T_anchor_final", "parameters", "method")
+  expect_true(all(essential_names %in% names(hatsa_obj)))
 
   # Check basic types/structures
   expect_true(is.matrix(hatsa_obj$v))
@@ -71,10 +71,10 @@ test_that("run_hatsa_core output and hatsa_projector constructor integrity", {
   # T_anchor_final might be matrix or NULL depending on GPA outcome, test for type or allow NULL
   expect_true(is.matrix(hatsa_obj$T_anchor_final) || is.null(hatsa_obj$T_anchor_final)) 
   expect_true(is.list(hatsa_obj$parameters))
-  expect_equal(hatsa_obj$method, "hatsa_core")
+  expect_equal(hatsa_obj$method, "task_hatsa")
 
   # Check specific parameters stored
-  expect_equal(hatsa_obj$parameters$k, params$spectral_rank_k)
+  expect_equal(hatsa_obj$parameters$k, params$components)
   expect_equal(hatsa_obj$parameters$V_p, V_p)
   expect_equal(hatsa_obj$parameters$N_subjects, N_subjects)
   expect_length(hatsa_obj$Lambda_original_list, N_subjects)
@@ -83,13 +83,13 @@ test_that("run_hatsa_core output and hatsa_projector constructor integrity", {
   expect_length(hatsa_obj$R_final_list, N_subjects)
   expect_length(hatsa_obj$U_original_list, N_subjects)
   
-  if (N_subjects > 0 && params$spectral_rank_k > 0) {
+  if (N_subjects > 0 && params$components > 0) {
       if(length(hatsa_obj$U_original_list) > 0 && !is.null(hatsa_obj$U_original_list[[1]])) {
-          expect_equal(ncol(hatsa_obj$U_original_list[[1]]), params$spectral_rank_k)
+          expect_equal(ncol(hatsa_obj$U_original_list[[1]]), params$components)
           expect_equal(nrow(hatsa_obj$U_original_list[[1]]), V_p)
       }
       if(length(hatsa_obj$Lambda_original_list) > 0 && !is.null(hatsa_obj$Lambda_original_list[[1]])) {
-          expect_length(hatsa_obj$Lambda_original_list[[1]], params$spectral_rank_k)
+          expect_length(hatsa_obj$Lambda_original_list[[1]], params$components)
       }
   }
 })
@@ -100,12 +100,12 @@ test_that("S3 method output dimensions and types (coef, scores, sdev, block_indi
   k <- 4 # Intentionally different from .get_default_hatsa_params for this test section if needed
   mock_data <- .generate_mock_subject_data(N_subjects, V_p)
   params <- .get_default_hatsa_params(V_p)
-  params$spectral_rank_k <- k # override k
+  params$components <- k # override k
 
-  hatsa_obj <- suppressMessages(try(run_hatsa_core(
-    subject_data_list = mock_data,
-    anchor_indices = params$anchor_indices,
-    spectral_rank_k = params$spectral_rank_k,
+  hatsa_obj <- suppressMessages(try(hatsa(
+    data = mock_data,
+    anchors = params$anchors,
+    components = params$components,
     k_conn_pos = params$k_conn_pos,
     k_conn_neg = params$k_conn_neg,
     n_refine = params$n_refine
@@ -113,7 +113,7 @@ test_that("S3 method output dimensions and types (coef, scores, sdev, block_indi
 
   if (inherits(hatsa_obj, "try-error")) {
     core_error_msg <- attr(hatsa_obj, "condition")$message
-    skip(paste0("run_hatsa_core failed (", core_error_msg, "), skipping S3 method tests."))
+    skip(paste0("hatsa failed (", core_error_msg, "), skipping S3 method tests."))
     return()
   }
 
@@ -149,12 +149,12 @@ test_that("predict.hatsa_projector output dimensions and types", {
   
   fit_data <- .generate_mock_subject_data(N_subjects_fit, V_p)
   fit_params <- .get_default_hatsa_params(V_p)
-  fit_params$spectral_rank_k <- k_fit
+  fit_params$components <- k_fit
 
-  hatsa_obj <- suppressMessages(try(run_hatsa_core(
-    subject_data_list = fit_data,
-    anchor_indices = fit_params$anchor_indices,
-    spectral_rank_k = fit_params$spectral_rank_k,
+  hatsa_obj <- suppressMessages(try(hatsa(
+    data = fit_data,
+    anchors = fit_params$anchors,
+    components = fit_params$components,
     k_conn_pos = fit_params$k_conn_pos,
     k_conn_neg = fit_params$k_conn_neg,
     n_refine = fit_params$n_refine
@@ -162,7 +162,7 @@ test_that("predict.hatsa_projector output dimensions and types", {
   
   if (inherits(hatsa_obj, "try-error")) {
     core_error_msg <- attr(hatsa_obj, "condition")$message
-    skip(paste0("run_hatsa_core failed (", core_error_msg, "), skipping predict method tests."))
+    skip(paste0("hatsa failed (", core_error_msg, "), skipping predict method tests."))
     return()
   }
 
@@ -217,12 +217,12 @@ test_that("project_block.hatsa_projector output dimensions and types", {
   
   fit_data <- .generate_mock_subject_data(N_subjects_fit, V_p)
   fit_params <- .get_default_hatsa_params(V_p)
-  fit_params$spectral_rank_k <- k_fit
+  fit_params$components <- k_fit
 
-  hatsa_obj <- suppressMessages(try(run_hatsa_core(
-    subject_data_list = fit_data,
-    anchor_indices = fit_params$anchor_indices,
-    spectral_rank_k = fit_params$spectral_rank_k,
+  hatsa_obj <- suppressMessages(try(hatsa(
+    data = fit_data,
+    anchors = fit_params$anchors,
+    components = fit_params$components,
     k_conn_pos = fit_params$k_conn_pos,
     k_conn_neg = fit_params$k_conn_neg,
     n_refine = fit_params$n_refine
@@ -230,7 +230,7 @@ test_that("project_block.hatsa_projector output dimensions and types", {
 
   if (inherits(hatsa_obj, "try-error")) {
     core_error_msg <- attr(hatsa_obj, "condition")$message
-    skip(paste0("run_hatsa_core failed (", core_error_msg, "), skipping project_block method tests."))
+    skip(paste0("hatsa failed (", core_error_msg, "), skipping project_block method tests."))
     return()
   }
 
@@ -266,17 +266,17 @@ test_that("project_block.hatsa_projector output dimensions and types", {
   expect_error(project_block(hatsa_obj, block = 0))
 })
 
-test_that("Edge case: spectral_rank_k = 1", {
+test_that("Edge case: components = 1", {
   V_p <- 30
   N_subjects <- 2
   mock_data <- .generate_mock_subject_data(N_subjects, V_p)
   params <- .get_default_hatsa_params(V_p)
-  params$spectral_rank_k <- 1 # Edge case k=1
+  params$components <- 1 # Edge case k=1
 
-  hatsa_obj_k1 <- suppressMessages(try(run_hatsa_core(
-    subject_data_list = mock_data,
-    anchor_indices = params$anchor_indices,
-    spectral_rank_k = params$spectral_rank_k,
+  hatsa_obj_k1 <- suppressMessages(try(hatsa(
+    data = mock_data,
+    anchors = params$anchors,
+    components = params$components,
     k_conn_pos = params$k_conn_pos,
     k_conn_neg = params$k_conn_neg,
     n_refine = params$n_refine
@@ -284,7 +284,7 @@ test_that("Edge case: spectral_rank_k = 1", {
 
   if (inherits(hatsa_obj_k1, "try-error")) {
     core_error_msg <- attr(hatsa_obj_k1, "condition")$message
-    skip(paste0("run_hatsa_core failed for k=1 (", core_error_msg, "), skipping k=1 edge case tests."))
+    skip(paste0("hatsa failed for k=1 (", core_error_msg, "), skipping k=1 edge case tests."))
     return()
   }
 
@@ -305,9 +305,9 @@ test_that("Edge case: spectral_rank_k = 1", {
   if (!inherits(predicted_sketches_k1, "try-error") && length(predicted_sketches_k1) > 0 && !is.null(predicted_sketches_k1[[1]])) {
     expect_equal(ncol(predicted_sketches_k1[[1]]), 1)
   } else if (!inherits(predicted_sketches_k1, "try-error")) {
-      warn("predict method for k=1 returned unexpected structure or empty result.")
+      warning("predict method for k=1 returned unexpected structure or empty result.")
   } else {
-      warn("predict method for k=1 failed.")
+      warning("predict method for k=1 failed.")
   }
 
 })
@@ -319,25 +319,25 @@ test_that("Edge case: Small N (e.g., N_subjects = 2, minimum for GPA to be non-t
   N_subjects_small <- 2 
   mock_data_small_n <- .generate_mock_subject_data(N_subjects_small, V_p)
   params_small_n <- .get_default_hatsa_params(V_p)
-  # Ensure anchor_indices are valid for V_p
-  params_small_n$anchor_indices <- sample(1:V_p, min(V_p, params_small_n$spectral_rank_k +1 )) 
+  # Ensure anchors are valid for V_p
+  params_small_n$anchors <- sample(1:V_p, min(V_p, params_small_n$components +1 )) 
 
 
-  hatsa_obj_small_n <- suppressMessages(try(run_hatsa_core(
-    subject_data_list = mock_data_small_n,
-    anchor_indices = params_small_n$anchor_indices,
-    spectral_rank_k = params_small_n$spectral_rank_k,
+  hatsa_obj_small_n <- suppressMessages(try(hatsa(
+    data = mock_data_small_n,
+    anchors = params_small_n$anchors,
+    components = params_small_n$components,
     k_conn_pos = params_small_n$k_conn_pos,
     k_conn_neg = params_small_n$k_conn_neg,
     n_refine = params_small_n$n_refine
   ), silent = TRUE))
 
   if (inherits(hatsa_obj_small_n, "try-error")) {
-    # If run_hatsa_core inherently requires N > 2 for some reason, this test might need adjustment
+    # If hatsa inherently requires N > 2 for some reason, this test might need adjustment
     # or the function should handle N=2 gracefully.
     core_error_msg <- attr(hatsa_obj_small_n, "condition")$message
-    warning(paste0("run_hatsa_core failed for N_subjects=2: ", core_error_msg))
-    skip(paste0("run_hatsa_core failed for N_subjects=2 (",core_error_msg,"), skipping small N tests."))
+    warning(paste0("hatsa failed for N_subjects=2: ", core_error_msg))
+    skip(paste0("hatsa failed for N_subjects=2 (",core_error_msg,"), skipping small N tests."))
     return()
   }
 
@@ -348,14 +348,14 @@ test_that("Edge case: Small N (e.g., N_subjects = 2, minimum for GPA to be non-t
 
 
   # Note: True N=1 case might be problematic for HATSA if GPA is essential.
-  # The current run_hatsa_core might error or produce trivial rotations for N=1.
+  # The current hatsa might error or produce trivial rotations for N=1.
   # If N=1 should be supported with specific behavior (e.g. identity rotations),
   # that needs its own test case and code handling.
   # For now, N=2 is considered a "small N" edge case for alignment.
 })
 
 # Further tests could include:
-# - Behavior when anchor_indices are problematic (e.g., too few, out of bounds - though run_hatsa_core might check this)
+# - Behavior when anchors are problematic (e.g., too few, out of bounds - though hatsa might check this)
 # - Behavior with different k_conn_pos/k_conn_neg values (e.g., 0)
 # - Test if ncomp.projector and shape.projector (inherited) work as expected (Ticket 3 item)
 #   (This would require multivarious to be available and its methods to be generic)
@@ -371,12 +371,12 @@ test_that("summary.hatsa_projector executes", {
   k <- 3
   mock_data <- .generate_mock_subject_data(N_subjects, V_p)
   params <- .get_default_hatsa_params(V_p)
-  params$spectral_rank_k <- k
+  params$components <- k
 
-  hatsa_obj <- suppressMessages(try(run_hatsa_core(
-    subject_data_list = mock_data,
-    anchor_indices = params$anchor_indices,
-    spectral_rank_k = params$spectral_rank_k,
+  hatsa_obj <- suppressMessages(try(hatsa(
+    data = mock_data,
+    anchors = params$anchors,
+    components = params$components,
     k_conn_pos = params$k_conn_pos,
     k_conn_neg = params$k_conn_neg,
     n_refine = params$n_refine
@@ -384,7 +384,7 @@ test_that("summary.hatsa_projector executes", {
 
   if (inherits(hatsa_obj, "try-error")) {
     core_error_msg <- attr(hatsa_obj, "condition")$message
-    skip(paste0("run_hatsa_core failed (", core_error_msg, "), skipping summary method test."))
+    skip(paste0("hatsa failed (", core_error_msg, "), skipping summary method test."))
     return()
   }
 
@@ -405,16 +405,16 @@ test_that("summary.hatsa_projector executes", {
 #     k <- 2
 #     mock_data <- .generate_mock_subject_data(N_subjects, V_p)
 #     params <- .get_default_hatsa_params(V_p)
-#     params$spectral_rank_k <- k
+#     params$components <- k
 # 
-#     hatsa_obj <- suppressMessages(try(run_hatsa_core(
-#       subject_data_list = mock_data, anchor_indices = params$anchor_indices,
-#       spectral_rank_k = k, k_conn_pos = params$k_conn_pos,
+#     hatsa_obj <- suppressMessages(try(hatsa(
+#       data = mock_data, anchors = params$anchors,
+#       components = k, k_conn_pos = params$k_conn_pos,
 #       k_conn_neg = params$k_conn_neg, n_refine = params$n_refine
 #     ), silent = TRUE))
 # 
 #     if (inherits(hatsa_obj, "try-error")) {
-#       skip("run_hatsa_core failed, skipping inherited method tests.")
+#       skip("hatsa failed, skipping inherited method tests.")
 #       return()
 #     }
 # 

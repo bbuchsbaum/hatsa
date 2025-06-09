@@ -1,4 +1,4 @@
-#' Validate inputs for run_hatsa_core
+#' Validate inputs for HATSA core algorithm
 #'
 #' Checks the validity of input parameters for the main HATSA function.
 #' Stops with an error if validation fails.

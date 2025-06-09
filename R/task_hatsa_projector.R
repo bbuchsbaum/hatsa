@@ -18,7 +18,7 @@
 #'   NULL otherwise.
 #'
 #' @return A `task_hatsa_projector` object.
-#' @seealso `run_task_hatsa`, `hatsa_projector`
+#' @seealso `task_hatsa`, `hatsa_projector`
 #' @name task_hatsa_projector
 NULL
 

@@ -165,17 +165,15 @@ test_that("project_voxels.hatsa_projector: basic functionality and dimensions", 
   fit_parcel_data <- .generate_mock_subject_data_parcels(N_subjects_fit, V_p_fit)
   fit_params <- .get_default_hatsa_params_for_voxel_test(V_p_fit, k_fit)
 
-  hatsa_fitted_obj <- suppressMessages(try(run_hatsa_core(
-    subject_data_list = fit_parcel_data,
-    anchor_indices = fit_params$anchor_indices,
-    spectral_rank_k = fit_params$spectral_rank_k,
-    k_conn_pos = fit_params$k_conn_pos,
-    k_conn_neg = fit_params$k_conn_neg,
-    n_refine = fit_params$n_refine
+  hatsa_fitted_obj <- suppressMessages(try(hatsa(
+    data = fit_parcel_data,
+    anchors = fit_params$anchor_indices,
+    components = fit_params$spectral_rank_k,
+    preset = "default"
   ), silent = TRUE))
 
   if (inherits(hatsa_fitted_obj, "try-error")) {
-    skip(paste0("run_hatsa_core failed during setup for project_voxels tests: ", 
+    skip(paste0("hatsa failed during setup for project_voxels tests: ", 
                 attr(hatsa_fitted_obj, "condition")$message))
     return()
   }
