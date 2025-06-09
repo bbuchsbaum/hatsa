@@ -55,305 +55,262 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="hatsa-hyperalignment-via-task-informed-shared-analysis">HATSA: Hyperalignment via Task-informed Shared Analysis<a class="anchor" aria-label="anchor" href="#hatsa-hyperalignment-via-task-informed-shared-analysis"></a>
 </h1></div>
-<p><strong>R Package for advanced functional connectivity alignment with task-informed features</strong></p>
-<p><a href="https://github.com/bbuchsbaum/hatsa/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/bbuchsbaum/hatsa/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/bbuchsbaum/hatsa?branch=main" class="external-link"><img src="https://codecov.io/gh/bbuchsbaum/hatsa/branch/main/graph/badge.svg" alt="Codecov test coverage"></a> <a href="./HATSA_PROJECT_STATUS.html"><img src="https://img.shields.io/badge/Status-95%25%20Complete-brightgreen" alt="Status"></a> <a href="./HATSA_PROJECT_STATUS.html#critical-path-to-completion"><img src="https://img.shields.io/badge/Critical%20Path-All%20Implemented-brightgreen" alt="Critical Path"></a></p>
-<hr>
+<p><a href="https://github.com/bbuchsbaum/hatsa/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/bbuchsbaum/hatsa/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/bbuchsbaum/hatsa?branch=main" class="external-link"><img src="https://codecov.io/gh/bbuchsbaum/hatsa/branch/main/graph/badge.svg" alt="Codecov test coverage"></a></p>
 <div class="section level2">
-<h2 id="id_-current-status">🎯 <strong>Current Status</strong>
-<a class="anchor" aria-label="anchor" href="#id_-current-status"></a>
+<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>The HATSA package implements advanced hyperalignment methods for functional neuroimaging data, with <strong>all major components and critical path functions implemented</strong>.</p>
+<p>HATSA (Hyperalignment via Task-informed Shared Analysis) is an R package that implements advanced methods for aligning functional neuroimaging data across subjects. The package addresses the fundamental challenge in functional neuroimaging of establishing correspondence between brain regions across individuals, enabling group-level analyses while preserving subject-specific functional organization.</p>
+<p>The core innovation of HATSA lies in its integration of task-informed features with graph-based spectral alignment, providing a principled approach to functional hyperalignment that leverages both resting-state connectivity and task-evoked activation patterns.</p>
 </div>
 <div class="section level2">
-<h2 id="id_-quick-start">🚀 <strong>Quick Start</strong>
-<a class="anchor" aria-label="anchor" href="#id_-quick-start"></a>
+<h2 id="key-features">Key Features<a class="anchor" aria-label="anchor" href="#key-features"></a>
+</h2>
+<div class="section level3">
+<h3 id="core-hatsa-algorithm">Core HATSA Algorithm<a class="anchor" aria-label="anchor" href="#core-hatsa-algorithm"></a>
+</h3>
+<ul>
+<li>
+<strong>Sparse graph-based alignment</strong> using spectral decomposition of connectivity Laplacians</li>
+<li>
+<strong>Generalized Procrustes Analysis (GPA)</strong> for optimal orthogonal transformations</li>
+<li>
+<strong>Anchor-based alignment</strong> ensuring robust correspondence across subjects</li>
+<li>
+<strong>SO(k) manifold operations</strong> with geodesic distance computations</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="task-informed-extensions">Task-informed Extensions<a class="anchor" aria-label="anchor" href="#task-informed-extensions"></a>
+</h3>
+<ul>
+<li>
+<strong>Lambda blending</strong>: Weighted combination of connectivity and task-activation graphs</li>
+<li>
+<strong>GEV patches</strong>: Generalized eigenvalue-based incorporation of task information</li>
+<li>
+<strong>Residualization methods</strong> for handling redundancy between connectivity and task features</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="advanced-capabilities">Advanced Capabilities<a class="anchor" aria-label="anchor" href="#advanced-capabilities"></a>
+</h3>
+<ul>
+<li>
+<strong>Nyström extension</strong> for projecting high-dimensional voxel data</li>
+<li>
+<strong>Riemannian geometry operations</strong> on symmetric positive definite (SPD) manifolds</li>
+<li>
+<strong>Quality control metrics</strong> and alignment validation</li>
+<li>
+<strong>Multivariate projection framework</strong> integration</li>
+</ul>
+</div>
+</div>
+<div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Install the package</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"bbuchsbaum/hatsa"</span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/hatsa/">hatsa</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Basic usage - automatic everything!</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa</a></span><span class="op">(</span><span class="va">subject_data</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Get aligned data and check quality</span></span>
-<span><span class="va">aligned</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/hatsa-accessors.html">get_aligned_data</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
-<span><span class="fu"><a href="reference/hatsa_summary.html">hatsa_summary</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Task-informed variant</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/hatsa_task.html">hatsa_task</a></span><span class="op">(</span><span class="va">subject_data</span>, <span class="va">task_data</span>, method <span class="op">=</span> <span class="st">"auto"</span><span class="op">)</span></span></code></pre></div>
-<p><strong>📊 Progress</strong>: ~95% complete <strong>📋 Current Focus</strong>: Package polish and optimization tasks (<a href="./HATSA_PROJECT_STATUS.html#immediate-priorities-week-1">status details</a>) <strong>⏱️ Estimated Completion</strong>: 1-2 weeks</p>
-<hr>
+<code class="sourceCode R"><span><span class="co"># Install from GitHub</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"bbuchsbaum/hatsa"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="id_-quick-start-once-complete">🚀 <strong>Quick Start (Once Complete)</strong>
-<a class="anchor" aria-label="anchor" href="#id_-quick-start-once-complete"></a>
+<h2 id="quick-start">Quick Start<a class="anchor" aria-label="anchor" href="#quick-start"></a>
 </h2>
+<div class="section level3">
+<h3 id="basic-hatsa-alignment">Basic HATSA Alignment<a class="anchor" aria-label="anchor" href="#basic-hatsa-alignment"></a>
+</h3>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Install development version</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"bbuchsbaum/hatsa"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/hatsa/">hatsa</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Basic HATSA alignment</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://bbuchsbaum.github.io/hatsa/">hatsa</a></span><span class="op">)</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_hatsa_core.html">run_hatsa_core</a></span><span class="op">(</span></span>
-<span>  subject_data_list <span class="op">=</span> <span class="va">my_timeseries</span>,</span>
-<span>  anchor_indices <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">15</span>, <span class="fl">23</span>, <span class="fl">45</span>, <span class="fl">67</span><span class="op">)</span>,</span>
-<span>  spectral_rank_k <span class="op">=</span> <span class="fl">20</span></span>
+<span><span class="co"># Core HATSA with automatic parameter selection</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa</a></span><span class="op">(</span><span class="va">subject_data_list</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Extract aligned data and examine results</span></span>
+<span><span class="va">aligned_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/hatsa-accessors.html">get_aligned_data</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="task-informed-hatsa">Task-informed HATSA<a class="anchor" aria-label="anchor" href="#task-informed-hatsa"></a>
+</h3>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Task-informed alignment with lambda blending</span></span>
+<span><span class="va">task_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/hatsa_task.html">hatsa_task</a></span><span class="op">(</span></span>
+<span>  subject_data_list <span class="op">=</span> <span class="va">connectivity_data</span>,</span>
+<span>  task_data_list <span class="op">=</span> <span class="va">activation_maps</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"lambda_blend"</span>,</span>
+<span>  lambda <span class="op">=</span> <span class="fl">0.3</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Task-informed HATSA  </span></span>
-<span><span class="va">task_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/task_hatsa.html">run_task_hatsa</a></span><span class="op">(</span></span>
-<span>  subject_data_list <span class="op">=</span> <span class="va">my_timeseries</span>,</span>
-<span>  task_data_list <span class="op">=</span> <span class="va">my_activation_maps</span>,</span>
+<span><span class="co"># GEV-based task integration</span></span>
+<span><span class="va">gev_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/hatsa_task.html">hatsa_task</a></span><span class="op">(</span></span>
+<span>  subject_data_list <span class="op">=</span> <span class="va">connectivity_data</span>,</span>
+<span>  task_data_list <span class="op">=</span> <span class="va">activation_maps</span>,</span>
+<span>  method <span class="op">=</span> <span class="st">"gev_patch"</span>,</span>
+<span>  k_gev_dims <span class="op">=</span> <span class="fl">5</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="advanced-usage">Advanced Usage<a class="anchor" aria-label="anchor" href="#advanced-usage"></a>
+</h3>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Detailed control over hyperalignment parameters</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_hatsa_core.html">run_hatsa_core</a></span><span class="op">(</span></span>
+<span>  subject_data_list <span class="op">=</span> <span class="va">timeseries_data</span>,</span>
 <span>  anchor_indices <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">15</span>, <span class="fl">23</span>, <span class="fl">45</span>, <span class="fl">67</span><span class="op">)</span>,</span>
 <span>  spectral_rank_k <span class="op">=</span> <span class="fl">20</span>,</span>
-<span>  task_method <span class="op">=</span> <span class="st">"lambda_blend"</span></span>
+<span>  k_conn_pos <span class="op">=</span> <span class="fl">7</span>,</span>
+<span>  k_conn_neg <span class="op">=</span> <span class="fl">7</span>,</span>
+<span>  n_refine <span class="op">=</span> <span class="fl">3</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Project voxel data using Nyström extension</span></span>
+<span><span class="co"># Project high-dimensional voxel data</span></span>
 <span><span class="va">voxel_projections</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/project_voxels.html">project_voxels</a></span><span class="op">(</span></span>
 <span>  <span class="va">result</span>, </span>
-<span>  voxel_timeseries_list <span class="op">=</span> <span class="va">my_voxel_data</span>,</span>
+<span>  voxel_timeseries_list <span class="op">=</span> <span class="va">voxel_data</span>,</span>
 <span>  voxel_coords <span class="op">=</span> <span class="va">voxel_coordinates</span>,</span>
 <span>  parcel_coords <span class="op">=</span> <span class="va">parcel_centroids</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<hr>
+</div>
 </div>
 <div class="section level2">
-<h2 id="id_-whats-implemented">✅ <strong>What’s Implemented</strong>
-<a class="anchor" aria-label="anchor" href="#id_-whats-implemented"></a>
+<h2 id="mathematical-foundation">Mathematical Foundation<a class="anchor" aria-label="anchor" href="#mathematical-foundation"></a>
+</h2>
+<p>HATSA implements a spectral approach to functional alignment based on the eigendecomposition of graph Laplacians derived from functional connectivity. The core algorithm:</p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Graph Construction</strong>: Builds sparse k-NN graphs from subject-specific connectivity matrices</li>
+<li>
+<strong>Spectral Decomposition</strong>: Computes low-rank spectral sketches via Laplacian eigendecomposition</li>
+<li>
+<strong>Anchor Alignment</strong>: Establishes correspondence using anchor parcels across subjects</li>
+<li>
+<strong>Procrustes Refinement</strong>: Iteratively refines alignment via generalized Procrustes analysis</li>
+<li>
+<strong>Projection</strong>: Maps data to the common representational space</li>
+</ol>
+<p>The task-informed extensions incorporate activation patterns through: - <strong>Weighted graph combination</strong> (lambda blending) - <strong>Generalized eigenvalue problems</strong> (GEV patches) - <strong>Manifold-based integration</strong> on SPD matrices</p>
+</div>
+<div class="section level2">
+<h2 id="core-functions">Core Functions<a class="anchor" aria-label="anchor" href="#core-functions"></a>
 </h2>
 <div class="section level3">
-<h3 id="core-architecture-100">
-<strong>Core Architecture (100%)</strong><a class="anchor" aria-label="anchor" href="#core-architecture-100"></a>
+<h3 id="primary-interfaces">Primary Interfaces<a class="anchor" aria-label="anchor" href="#primary-interfaces"></a>
 </h3>
 <ul>
-<li>✅ Full S3 class system (<code>hatsa_projector</code>, <code>task_hatsa_projector</code>)</li>
-<li>✅ Integration with <code>multivarious</code> package ecosystem</li>
-<li>✅ Comprehensive documentation and examples</li>
-<li>✅ Extensive test suite (400+ test cases)</li>
+<li>
+<code><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa()</a></code>: High-level interface for core HATSA alignment</li>
+<li>
+<code><a href="reference/hatsa_task.html">hatsa_task()</a></code>: Task-informed hyperalignment</li>
+<li>
+<code><a href="reference/run_hatsa_core.html">run_hatsa_core()</a></code>: Low-level core algorithm control</li>
+<li>
+<code><a href="reference/task_hatsa.html">run_task_hatsa()</a></code>: Detailed task-informed alignment</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="advanced-features-95">
-<strong>Advanced Features (95%)</strong><a class="anchor" aria-label="anchor" href="#advanced-features-95"></a>
+<h3 id="spectral-graph-methods">Spectral Graph Methods<a class="anchor" aria-label="anchor" href="#spectral-graph-methods"></a>
 </h3>
 <ul>
-<li>✅ <strong>Task-informed HATSA</strong>: Lambda blending and GEV patches</li>
-<li>✅ <strong>Voxel projection</strong>: Complete Nyström extension implementation</li>
-<li>✅ <strong>Weighted alignment</strong>: Omega-weighted Procrustes refinement</li>
-<li>✅ <strong>Riemannian geometry</strong>: SPD manifold operations</li>
-<li>✅ <strong>Validation metrics</strong>: Alignment quality assessment</li>
+<li>
+<code><a href="reference/compute_subject_connectivity_graph_sparse.html">compute_subject_connectivity_graph_sparse()</a></code>: Sparse connectivity graphs</li>
+<li>
+<code><a href="reference/compute_graph_laplacian_sparse.html">compute_graph_laplacian_sparse()</a></code>: Laplacian computation</li>
+<li>
+<code><a href="reference/compute_spectral_sketch_sparse.html">compute_spectral_sketch_sparse()</a></code>: Eigendecomposition</li>
+<li>
+<code><a href="reference/solve_gev_laplacian_primme.html">solve_gev_laplacian_primme()</a></code>: Generalized eigenvalue solver</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="specialized-modules-90">
-<strong>Specialized Modules (90%)</strong><a class="anchor" aria-label="anchor" href="#specialized-modules-90"></a>
+<h3 id="alignment-and-projection">Alignment and Projection<a class="anchor" aria-label="anchor" href="#alignment-and-projection"></a>
 </h3>
 <ul>
-<li>✅ Anchor selection and optimization</li>
-<li>✅ Quality control plotting and diagnostics<br>
+<li>
+<code><a href="reference/solve_procrustes_rotation.html">solve_procrustes_rotation()</a></code>: Orthogonal alignment</li>
+<li>
+<code><a href="reference/project_voxels.html">project_voxels()</a></code>: Nyström extension for voxel projection</li>
+<li>
+<code><a href="reference/misalign_deg.html">misalign_deg()</a></code>: SO(k) geodesic distances</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="quality-control">Quality Control<a class="anchor" aria-label="anchor" href="#quality-control"></a>
+</h3>
+<ul>
+<li>
+<code><a href="reference/hatsa_summary.html">hatsa_summary()</a></code>: Alignment quality metrics</li>
+<li>
+<code><a href="reference/plot_hatsa.html">plot_hatsa()</a></code>: Visualization methods</li>
+<li>
+<code><a href="reference/reconstruction_error.html">reconstruction_error()</a></code>: Validation metrics</li>
+</ul>
+</div>
+</div>
+<div class="section level2">
+<h2 id="dependencies">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies"></a>
+</h2>
+<div class="section level3">
+<h3 id="required">Required<a class="anchor" aria-label="anchor" href="#required"></a>
+</h3>
+<ul>
+<li>
+<code>Matrix</code>: Sparse matrix operations</li>
+<li>
+<code>PRIMME</code>: Generalized eigenvalue problems</li>
+<li>
+<code>expm</code>: Matrix exponential/logarithm operations</li>
+<li>
+<code>multivarious</code>: S3 projector framework</li>
+<li>
+<code>RANN</code>: Fast nearest neighbor search</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="suggested">Suggested<a class="anchor" aria-label="anchor" href="#suggested"></a>
+</h3>
+<ul>
+<li>
+<code>vegan</code>: Procrustes analysis</li>
+<li>
+<code>ggplot2</code>: Visualization</li>
+<li>
+<code>testthat</code>: Testing framework</li>
+</ul>
+</div>
+</div>
+<div class="section level2">
+<h2 id="mathematical-details">Mathematical Details<a class="anchor" aria-label="anchor" href="#mathematical-details"></a>
+</h2>
+<p>The package implements computations on several mathematical structures:</p>
+<ul>
+<li>
+<strong>Special Orthogonal Group SO(k)</strong>: Rotation matrices with geodesic distance metrics</li>
+<li>
+<strong>SPD Manifolds</strong>: Riemannian operations on positive definite matrices<br>
 </li>
-<li>✅ Graph construction methods</li>
-<li>✅ Projection and transformation utilities</li>
+<li>
+<strong>Graph Laplacians</strong>: Spectral graph theory for connectivity analysis</li>
+<li>
+<strong>Stiefel Manifolds</strong>: Orthogonal matrix optimization via Procrustes methods</li>
 </ul>
-<hr>
-</div>
+<p>Numerical stability is ensured through: - Eigenvalue tolerance checking - SVD-based orthogonalization - Condition number monitoring - Robust matrix logarithms</p>
 </div>
 <div class="section level2">
-<h2 id="id_-critical-path-completed">✅ <strong>Critical Path Completed</strong>
-<a class="anchor" aria-label="anchor" href="#id_-critical-path-completed"></a>
+<h2 id="citations">Citations<a class="anchor" aria-label="anchor" href="#citations"></a>
 </h2>
-<p>All five foundational functions are fully implemented and tested:</p>
-<ol style="list-style-type: decimal">
-<li>
-<code><a href="reference/compute_subject_connectivity_graph_sparse.html">compute_subject_connectivity_graph_sparse()</a></code> - Sparse correlation graphs</li>
-<li>
-<code><a href="reference/compute_graph_laplacian_sparse.html">compute_graph_laplacian_sparse()</a></code> - Laplacian computation</li>
-<li>
-<code><a href="reference/compute_spectral_sketch_sparse.html">compute_spectral_sketch_sparse()</a></code> - Eigendecomposition</li>
-<li>
-<code><a href="reference/misalign_deg.html">misalign_deg()</a></code> - SO(k) geodesic distance</li>
-<li>
-<code><a href="reference/solve_gev_laplacian_primme.html">solve_gev_laplacian_primme()</a></code> - Generalized eigenvalue solver</li>
-</ol>
-<p><strong>📋 Detailed status</strong>: See <a href="./HATSA_PROJECT_STATUS.html">HATSA_PROJECT_STATUS.md</a></p>
-<hr>
+<p>When using HATSA in your research, please cite:</p>
+<pre><code>Buchsbaum, B.R. (2024). HATSA: Hyperalignment via Task-informed Shared Analysis.
+R package version 0.1.0. https://github.com/bbuchsbaum/hatsa</code></pre>
 </div>
 <div class="section level2">
-<h2 id="id_-documentation">📖 <strong>Documentation</strong>
-<a class="anchor" aria-label="anchor" href="#id_-documentation"></a>
-</h2>
-<ul>
-<li>
-<strong><a href="./HATSA_PROJECT_STATUS.html">Project Status &amp; Roadmap</a></strong> - Current state and completion plan</li>
-<li>
-<strong><a href="./planning-docs/">Archived Planning Docs</a></strong> - Original design documents and mathematical foundations</li>
-<li>
-<strong><a href="./man/">Package Documentation</a></strong> - Function references and examples</li>
-<li>
-<strong><a href="./tests/testthat/">Test Suite</a></strong> - Comprehensive test coverage</li>
-</ul>
-<hr>
-</div>
-<div class="section level2">
-<h2 id="id_-development-setup">🔧 <strong>Development Setup</strong>
-<a class="anchor" aria-label="anchor" href="#id_-development-setup"></a>
-</h2>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Clone and setup</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/bbuchsbaum/hatsa.git</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="bu">cd</span> hatsa</span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co"># Install dependencies</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="ex">R</span> <span class="at">-e</span> <span class="st">"install.packages(c('Matrix', 'RSpectra', 'PRIMME', 'expm', 'multivarious'))"</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co"># Test current state (all tests should pass)</span></span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="ex">R</span> <span class="at">-e</span> <span class="st">"devtools::test()"</span></span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a></span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co"># Check package structure</span></span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="ex">R</span> <span class="at">-e</span> <span class="st">"devtools::check()"</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="required-dependencies">
-<strong>Required Dependencies</strong><a class="anchor" aria-label="anchor" href="#required-dependencies"></a>
-</h3>
-<ul>
-<li>
-<code>Matrix</code> - Sparse matrix operations</li>
-<li>
-<code>RSpectra</code> - Sparse eigendecomposition<br>
-</li>
-<li>
-<code>PRIMME</code> - Generalized eigenvalue problems</li>
-<li>
-<code>expm</code> - Matrix exponential/logarithm</li>
-<li>
-<code>multivarious</code> - S3 projector framework</li>
-</ul>
-<hr>
-</div>
-</div>
-<div class="section level2">
-<h2 id="id_-next-steps-for-contributors">🎯 <strong>Next Steps for Contributors</strong>
-<a class="anchor" aria-label="anchor" href="#id_-next-steps-for-contributors"></a>
-</h2>
-<div class="section level3">
-<h3 id="immediate-priority-week-1">
-<strong>Immediate Priority (Week 1)</strong><a class="anchor" aria-label="anchor" href="#immediate-priority-week-1"></a>
-</h3>
-<p>Address the remaining polish tasks outlined in <a href="./HATSA_PROJECT_STATUS.html">HATSA_PROJECT_STATUS.md</a>:</p>
-<ol style="list-style-type: decimal">
-<li>Update <code>DESCRIPTION</code> dependencies</li>
-<li>Resolve import conflicts</li>
-<li>Fix deprecation warnings</li>
-</ol>
-</div>
-<div class="section level3">
-<h3 id="integration-testing-week-2">
-<strong>Integration Testing (Week 2)</strong><a class="anchor" aria-label="anchor" href="#integration-testing-week-2"></a>
-</h3>
-<ol style="list-style-type: decimal">
-<li>Validate full HATSA pipeline</li>
-<li>Test task-informed extensions</li>
-<li>Verify voxel projection functionality</li>
-<li>Performance optimization</li>
-</ol>
-</div>
-<div class="section level3">
-<h3 id="ready-for-testing">
-<strong>Ready for Testing</strong><a class="anchor" aria-label="anchor" href="#ready-for-testing"></a>
-</h3>
-<ul>
-<li>✅ Comprehensive test suite already written</li>
-<li>✅ Mathematical specifications documented<br>
-</li>
-<li>✅ Function signatures defined</li>
-<li>✅ Expected outputs specified</li>
-</ul>
-<hr>
-</div>
-</div>
-<div class="section level2">
-<h2 id="id_-package-statistics">📊 <strong>Package Statistics</strong>
-<a class="anchor" aria-label="anchor" href="#id_-package-statistics"></a>
-</h2>
-<table class="table">
-<thead><tr class="header">
-<th>Component</th>
-<th>Status</th>
-<th>Files</th>
-<th>Lines</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td><strong>R Source</strong></td>
-<td>95%</td>
-<td>23 files</td>
-<td>~47K lines</td>
-</tr>
-<tr class="even">
-<td><strong>Tests</strong></td>
-<td>Ready</td>
-<td>11 files</td>
-<td>~11K lines</td>
-</tr>
-<tr class="odd">
-<td><strong>Documentation</strong></td>
-<td>95%</td>
-<td>57 functions</td>
-<td>Complete</td>
-</tr>
-<tr class="even">
-<td><strong>Examples</strong></td>
-<td>90%</td>
-<td>All modules</td>
-<td>Working</td>
-</tr>
-</tbody>
-</table>
-<hr>
-</div>
-<div class="section level2">
-<h2 id="id_️-architecture-overview">🏗️ <strong>Architecture Overview</strong>
-<a class="anchor" aria-label="anchor" href="#id_%EF%B8%8F-architecture-overview"></a>
-</h2>
-<pre><code>hatsa/
-├── R/
-│   ├── hatsa_core_algorithm.R      # Main HATSA workflow
-│   ├── task_hatsa_main.R           # Task-informed extensions
-│   ├── voxel_projection.R          # Nyström voxel mapping
-│   ├── spectral_graph_construction.R  # Core functions implemented
-│   ├── riemannian_geometry.R       # SPD manifold operations
-│   └── [18 other modules]          # Specialized functionality
-├── tests/testthat/
-│   ├── test-hatsa_core_functionality.R
-│   ├── test-spectral_graph_construction.R  # Ready to test
-│   └── [9 other test files]
-└── planning-docs/                  # Archived planning documents</code></pre>
-<hr>
-</div>
-<div class="section level2">
-<h2 id="id_-contributing">🤝 <strong>Contributing</strong>
-<a class="anchor" aria-label="anchor" href="#id_-contributing"></a>
-</h2>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Focus on Polish</strong>: Finalize documentation and dependency fixes</li>
-<li>
-<strong>Follow Test-Driven Development</strong>: Comprehensive tests already exist</li>
-<li>
-<strong>Reference Documentation</strong>: Mathematical specs in <code>planning-docs/</code> folder</li>
-<li>
-<strong>Check Integration</strong>: Ensure functions work with existing S3 methods</li>
-</ol>
-<hr>
-</div>
-<div class="section level2">
-<h2 id="id_-license">📜 <strong>License</strong>
-<a class="anchor" aria-label="anchor" href="#id_-license"></a>
+<h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
 </h2>
 <p>MIT License - See LICENSE file for details.</p>
-<hr>
-<p><strong>🎯 Ready to complete this project? Start with <a href="./HATSA_PROJECT_STATUS.html">HATSA_PROJECT_STATUS.md</a> for detailed implementation tickets.</strong></p>
+</div>
+<div class="section level2">
+<h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>
+</h2>
+<p>Contributions are welcome! Please see <a href="CONTRIBUTING.html">CONTRIBUTING.md</a> for guidelines.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
