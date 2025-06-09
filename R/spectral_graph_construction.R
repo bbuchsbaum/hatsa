@@ -365,14 +365,32 @@ compute_spectral_sketch_sparse <- function(L_conn_i_sparse, k,
     if(any(!is.finite(L_dense))) {
         stop("Non-finite values in dense Laplacian before eigen decomposition.")
     }
-    eigen_decomp <- eigen(L_dense, symmetric = TRUE)
+    eigen_decomp <- tryCatch(
+      eigen(L_dense, symmetric = TRUE),
+      error = function(e) {
+        stop(sprintf(
+          "Dense eigendecomposition failed: %s. Check Laplacian structure or try reducing k.",
+          e$message
+        ))
+      }
+    )
     eigen_vals_raw <- eigen_decomp$values
     eigen_vecs_raw <- eigen_decomp$vectors
   } else {
-    eigs_result <- PRIMME::eigs_sym(L_conn_i_sparse, 
-                                      NEig = num_eigs_to_request, 
-                                      which = "SM", 
-                                      tol = 1e-9)
+    eigs_result <- tryCatch(
+      PRIMME::eigs_sym(
+        L_conn_i_sparse,
+        NEig = num_eigs_to_request,
+        which = "SM",
+        tol = 1e-9
+      ),
+      error = function(e) {
+        stop(sprintf(
+          "PRIMME eigensolver failed: %s. Ensure PRIMME is installed and the Laplacian is valid.",
+          e$message
+        ))
+      }
+    )
     eigen_vals_raw <- eigs_result$values
     eigen_vecs_raw <- eigs_result$vectors
   }

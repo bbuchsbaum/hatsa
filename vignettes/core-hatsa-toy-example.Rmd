@@ -156,7 +156,7 @@ params_core_hatsa <- list(
   subject_data_list = X_list_toy,
   task_data_list = NULL, # Indicates core_hatsa method
   anchor_indices = anchor_indices_toy,
-  k_spectral_rank = k_spectral_rank_toy,
+  spectral_rank_k = k_spectral_rank_toy,
   # Vp and Nsub can often be inferred, but good to be explicit if known
   Vp = ncol(X_list_toy[[1]]), 
   Nsub = length(X_list_toy),

@@ -6,7 +6,7 @@
 \usage{
 select_anchors_mra(
   U_original_list_pilot,
-  k_spectral_rank,
+  spectral_rank_k,
   m_target,
   total_parcels = NULL,
   max_kappa = 100,
@@ -24,7 +24,7 @@ select_anchors_mra(
 \item{U_original_list_pilot}{A list of original (unaligned) sketch matrices
 (V_p x k) for a set of pilot subjects. These are used to evaluate candidate anchors.}
 
-\item{k_spectral_rank}{Integer, the spectral rank k used to generate `U_original_list_pilot`.}
+\item{spectral_rank_k}{Integer, the spectral rank k used to generate `U_original_list_pilot`.}
 
 \item{m_target}{Integer, the desired number of anchors to select.}
 
@@ -54,7 +54,7 @@ extensions (e.g., pre-filtering candidates).}
 `hatsa::riemannian_dispersion_spd` (e.g., `spd_metric`, `use_geometric_median`).}
 
 \item{min_anchors_for_metrics}{Integer. Minimum number of selected anchors required before
-kappa and dispersion metrics are considered stable enough to compute. Default is `k_spectral_rank`.}
+kappa and dispersion metrics are considered stable enough to compute. Default is `spectral_rank_k`.}
 
 \item{verbose}{Logical. If TRUE, print progress messages. Default: TRUE.}
 }
@@ -77,7 +77,7 @@ on the SPD manifold.
 #                           simplify = FALSE)
 # selected_anchors_mra <- select_anchors_mra(
 #   U_original_list_pilot = U_pilot_list,
-#   k_spectral_rank = k_rank,
+#   spectral_rank_k = k_rank,
 #   m_target = 15,
 #   total_parcels = V_p_total,
 #   verbose = TRUE
