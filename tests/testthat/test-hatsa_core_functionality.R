@@ -56,7 +56,7 @@ test_that("run_hatsa_core output and hatsa_projector constructor integrity", {
   # Check for presence of key elements
   expect_named(hatsa_obj, c("v", "s", "sdev", "preproc", "block_indices", 
                            "R_final_list", "U_original_list", "Lambda_original_list",
-                           "Lambda_original_gaps_list", "T_anchor_final", "parameters", "method"),
+                           "Lambda_original_gaps_list", "T_anchor_final", "parameters", "method", "._cache"),
                ignore.order = TRUE)
 
   # Check basic types/structures

@@ -4,7 +4,7 @@ library(testthat)
 create_mock_recon_projector <- function(N_subjects = 2, V_p = 6, k = 2, anchor_indices = c(1,2)) {
   U_orig_list <- lapply(seq_len(N_subjects), function(i) matrix(rnorm(V_p * k), V_p, k))
   R_list <- lapply(seq_len(N_subjects), function(i) {
-    qr_Q(qr(matrix(rnorm(k * k), k, k)))
+    qr.Q(qr(matrix(rnorm(k * k), k, k)))
   })
   U_aligned <- mapply(function(U, R) U %*% R, U_orig_list, R_list, SIMPLIFY = FALSE)
   s <- do.call(rbind, U_aligned)

@@ -276,6 +276,7 @@ test_that("TCK-SGC-012: compute_subject_connectivity_graph_sparse validates inpu
       k_conn_neg = 1.5
     ),
     "k_conn_neg"
+  )
 })
   
   

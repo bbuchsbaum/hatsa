@@ -309,4 +309,5 @@ test_that("project_voxels works with precomputed W_vox_parc", {
 #   then C_voxel_coeffs_i should be identical. C_voxel_aligned_i should then only differ by R_i.
 #   This is complex to set up perfectly due to U_orig_i differing per subject.
 # - A simpler consistency: if R_i is identity for all subjects (e.g. if T_anchor_final was based on subject 1 and U_orig_1)
-#   then aligned and unaligned coefficients should be similar for subject 1. })
+#   then aligned and unaligned coefficients should be similar for subject 1.
+

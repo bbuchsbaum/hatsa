@@ -1,6 +1,5 @@
-context("compute_gev_spectrum_diagnostics")
-
-test_that("compute_gev_spectrum_diagnostics computes expected statistics", {
+describe("compute_gev_spectrum_diagnostics", {
+  test_that("compute_gev_spectrum_diagnostics computes expected statistics", {
   lambda <- c(-1.2, -0.5, 0.3, 0.8, 1.5)
   thresh <- 0.8
   stats <- compute_gev_spectrum_diagnostics(lambda, thresh)
@@ -23,4 +22,5 @@ test_that("compute_gev_spectrum_diagnostics handles empty and invalid input", {
 
   expect_error(compute_gev_spectrum_diagnostics("bad", 0.5), "numeric vector")
   expect_error(compute_gev_spectrum_diagnostics(c(1,2), c(0.5,0.2)), "single numeric")
+})
 })

@@ -381,9 +381,20 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
   summary1 <- Matrix::summary(W_graph1)
   summary2 <- Matrix::summary(W_graph2)
 
-  # Filter for upper triangle (i < j)
-  edges1 <- summary1[summary1$i < summary1$j, , drop = FALSE]
-  edges2 <- summary2[summary2$i < summary2$j, , drop = FALSE]
+  # Handle case where summary returns empty or simple structure
+  if (length(summary1) == 0 || !is.data.frame(summary1)) {
+    edges1 <- data.frame(i = integer(0), j = integer(0), x = numeric(0))
+  } else {
+    # Filter for upper triangle (i < j)
+    edges1 <- summary1[summary1$i < summary1$j, , drop = FALSE]
+  }
+  
+  if (length(summary2) == 0 || !is.data.frame(summary2)) {
+    edges2 <- data.frame(i = integer(0), j = integer(0), x = numeric(0))
+  } else {
+    # Filter for upper triangle (i < j)
+    edges2 <- summary2[summary2$i < summary2$j, , drop = FALSE]
+  }
 
   if (nrow(edges1) == 0 && nrow(edges2) == 0) {
     return(NA_real_)

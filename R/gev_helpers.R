@@ -17,7 +17,7 @@
 #'   Default 1e-8 (PRIMME's default is 1e-6, using slightly tighter).
 #' @param primme_which Character string passed to `PRIMME::eigs_sym` to
 #'   control which eigenvalues are computed. Defaults to
-#'   "primme_closest_abs" which targets the eigenvalues closest to zero.
+#'   "SA" (smallest algebraic) which targets the smallest eigenvalues.
 #' @param ... Additional arguments passed to `PRIMME::eigs_sym`.
 #'
 #' @return A list containing:
@@ -40,7 +40,7 @@ solve_gev_laplacian_primme <- function(A, B, k_request,
                                          lambda_max_thresh = 0.8,
                                          epsilon_reg_B = 1e-6,
                                          tol = 1e-8,
-                                         primme_which = "primme_closest_abs",
+                                         primme_which = "SA",
                                          ...) {
 
   if (!requireNamespace("PRIMME", quietly = TRUE)) {
@@ -62,7 +62,7 @@ solve_gev_laplacian_primme <- function(A, B, k_request,
   if (!Matrix::isSymmetric(B)) {
     stop("Input matrix B must be symmetric.")
   }
-  if (any(diag(B) < 0)) {
+  if (any(Matrix::diag(B) < 0)) {
     warning("Input matrix B has negative diagonal entries and may not be positive semi-definite.")
   }
 

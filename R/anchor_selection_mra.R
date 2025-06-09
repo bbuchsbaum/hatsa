@@ -150,7 +150,7 @@ select_anchors_mra <- function(U_original_list_pilot,
 
     # Metric 1: Kappa of the Euclidean mean of anchor rows from U_original_list_pilot
     kappa_val <- Inf
-    if (num_current_anchors >= min_anchors_for_metrics || num_current_anchors >= spectral_rank_k) {
+    if (num_current_anchors >= min_anchors_for_metrics) {
         valid_anchor_matrices <- Filter(Negate(is.null), anchor_rows_list)
         if (length(valid_anchor_matrices) > 0) {
             # Check all matrices have same dim: num_current_anchors x spectral_rank_k
@@ -167,7 +167,7 @@ select_anchors_mra <- function(U_original_list_pilot,
 
     # Metric 2: Riemannian Dispersion of covariance matrices of anchor rows
     dispersion_val <- Inf
-    if (num_current_anchors >= min_anchors_for_metrics || num_current_anchors >= spectral_rank_k) { # Need enough rows for cov
+    if (num_current_anchors >= max(min_anchors_for_metrics, spectral_rank_k)) { # Need enough rows for cov
         spd_list_pilot <- lapply(anchor_rows_list, function(anchor_rows_subj) {
             if (is.null(anchor_rows_subj)) return(NULL)
             if (nrow(anchor_rows_subj) < 2 || nrow(anchor_rows_subj) < spectral_rank_k) return(NULL) # cov needs multiple observations
@@ -181,7 +181,7 @@ select_anchors_mra <- function(U_original_list_pilot,
                 disp_opts <- riemannian_dispersion_options
                 disp_opts$verbose <- FALSE
                 dispersion_results <- tryCatch(
-                    do.call(riemannian_dispersion_spd, c(list(valid_spd_list), disp_opts)),
+                    do.call(riemannian_dispersion_spd, c(list(object = valid_spd_list), disp_opts)),
                     error = function(e) NULL
                 )
                 if (!is.null(dispersion_results) && is.finite(dispersion_results$mean_dispersion)) {
@@ -205,7 +205,15 @@ select_anchors_mra <- function(U_original_list_pilot,
                                          # or simply make score -Inf: if (kappa_val > max_kappa) score <- -Inf
         }
     }
-    current_score <- weight_inv_kappa * inv_kappa_term - weight_dispersion * ifelse(is.finite(dispersion_val), dispersion_val, Inf)
+    
+    # If we can compute kappa but not dispersion (e.g., not enough anchors for cov),
+    # use only the kappa term if weight_dispersion is 0 or dispersion is not available
+    if (weight_dispersion == 0 || !is.finite(dispersion_val)) {
+        current_score <- weight_inv_kappa * inv_kappa_term
+    } else {
+        current_score <- weight_inv_kappa * inv_kappa_term - weight_dispersion * dispersion_val
+    }
+    
     if (kappa_val > max_kappa) current_score <- -Inf # Hard constraint
 
     return(list(kappa = kappa_val, dispersion = dispersion_val, score = current_score))
@@ -236,10 +244,14 @@ select_anchors_mra <- function(U_original_list_pilot,
     })
 
     iter_scores <- do.call(rbind, scores_list)
-    if (nrow(iter_scores) > 0) {
-      best_idx <- which.max(iter_scores$score)
-      best_current_iteration_score <- iter_scores$score[best_idx]
-      best_candidate_this_iteration <- iter_scores$candidate_idx[best_idx]
+    if (nrow(iter_scores) > 0 && any(!is.na(iter_scores$score) & iter_scores$score > -Inf)) {
+      # Filter out NA and -Inf scores before finding max
+      valid_idx <- which(!is.na(iter_scores$score) & iter_scores$score > -Inf)
+      if (length(valid_idx) > 0) {
+        best_idx <- valid_idx[which.max(iter_scores$score[valid_idx])]
+        best_current_iteration_score <- iter_scores$score[best_idx]
+        best_candidate_this_iteration <- iter_scores$candidate_idx[best_idx]
+      }
     }
     
     # Sort iter_scores for review (optional)
@@ -248,7 +260,7 @@ select_anchors_mra <- function(U_original_list_pilot,
     #    print(head(iter_scores))
     # }
 
-    if (is.null(best_candidate_this_iteration) || best_current_iteration_score == -Inf) {
+    if (is.null(best_candidate_this_iteration) || is.na(best_current_iteration_score) || best_current_iteration_score == -Inf) {
       if (verbose) message(sprintf("  MRA Iteration %d: No suitable candidate found to improve score. Stopping.", i))
       break
     }
