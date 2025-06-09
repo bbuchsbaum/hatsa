@@ -13,6 +13,40 @@
 #' @return A k x k matrix representing the Fr\u00e9chet mean.
 #' @keywords internal
 #' @importFrom expm logm expm
+
+#' Stable Matrix Logarithm for Rotation Matrices
+#'
+#' Projects the input matrix to the nearest rotation using SVD and then
+#' computes the matrix logarithm using a numerically stable algorithm.
+#' If the matrix is very close to the identity or the logarithm fails,
+#' a zero matrix is returned.
+#'
+#' @param R A square matrix expected to be close to a rotation matrix.
+#' @param tol Tolerance for treating a matrix as the identity.
+#' @return A matrix representing the logarithm of `R` or a zero matrix on failure.
+#' @keywords internal
+safe_so_logm <- function(R, tol = 1e-7) {
+  if (!is.matrix(R)) return(NULL)
+  k <- nrow(R)
+  if (ncol(R) != k) return(NULL)
+  sv <- svd(R)
+  R_proj <- sv$u %*% t(sv$v)
+  if (det(R_proj) < 0 && k > 0) {
+    sv$v[, k] <- -sv$v[, k]
+    R_proj <- sv$u %*% t(sv$v)
+  }
+  if (max(abs(R_proj - diag(k))) < tol) {
+    return(matrix(0, k, k))
+  }
+  log_R <- suppressWarnings(
+    tryCatch(expm::logm(R_proj, method = "Higham08.b"), error = function(e) NULL)
+  )
+  if (is.null(log_R) || anyNA(log_R) || any(!is.finite(log_R))) {
+    return(matrix(0, k, k))
+  }
+  log_R
+}
+
 frechet_mean_so_fast <- function(Rlist, refine = TRUE, tol = 1e-8) {
   if (!all(sapply(Rlist, function(R) is.matrix(R) && inherits(R, "matrix")))) {
     stop("All elements in Rlist must be standard R matrices.")
@@ -45,10 +79,7 @@ frechet_mean_so_fast <- function(Rlist, refine = TRUE, tol = 1e-8) {
   for (R_i in valid_Rlist) {
     if (is.matrix(R_i) && all(dim(R_i) == c(k, k))) {
       A <- Rbar_chordal %*% t(R_i)
-      log_A <- tryCatch(expm::logm(A), error = function(e) {
-        warning("logm failed in frechet_mean_so_fast refinement. Using zero matrix.")
-        matrix(0, k, k)
-      })
+      log_A <- safe_so_logm(A, tol)
       log_sum_tangent <- log_sum_tangent + log_A
       num_valid_for_refine <- num_valid_for_refine + 1
     }
@@ -101,10 +132,7 @@ frechet_mean_so_karcher <- function(Rlist, R_init = NULL, tol = 1e-10, maxit = 1
     for (R_i in valid_Rlist) {
       if (is.matrix(R_i) && all(dim(R_i) == c(k, k))) {
         err_rot <- t(Rbar_current) %*% R_i
-        log_A_i <- tryCatch(expm::logm(err_rot), error = function(e) {
-          warning(sprintf("logm failed in Karcher iteration %d. Using zero matrix.", it))
-          matrix(0, k, k)
-        })
+        log_A_i <- safe_so_logm(err_rot, tol)
         log_sum_tangent <- log_sum_tangent + log_A_i
         num_valid_R <- num_valid_R + 1
       }
