@@ -111,7 +111,7 @@ All five foundational functions are fully implemented and tested:
 ## 📖 **Documentation**
 
 - **[Project Status & Roadmap](./HATSA_PROJECT_STATUS.md)** - Current state and completion plan
-- **[Archived Planning Docs](./docs/)** - Original design documents and mathematical foundations
+- **[Archived Planning Docs](./planning-docs/)** - Original design documents and mathematical foundations
 - **[Package Documentation](./man/)** - Function references and examples
 - **[Test Suite](./tests/testthat/)** - Comprehensive test coverage
 
@@ -192,7 +192,7 @@ hatsa/
 │   ├── test-hatsa_core_functionality.R
 │   ├── test-spectral_graph_construction.R  # Ready to test
 │   └── [9 other test files]
-└── docs/                           # Archived planning documents
+└── planning-docs/                  # Archived planning documents
 ```
 
 ---
@@ -201,7 +201,7 @@ hatsa/
 
 1. **Focus on Polish**: Finalize documentation and dependency fixes
 2. **Follow Test-Driven Development**: Comprehensive tests already exist
-3. **Reference Documentation**: Mathematical specs in `docs/` folder
+3. **Reference Documentation**: Mathematical specs in `planning-docs/` folder
 4. **Check Integration**: Ensure functions work with existing S3 methods
 
 ---

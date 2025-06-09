@@ -213,7 +213,7 @@ hatsa/
 
 ### HATSA-Specific Resources
 
-- **Mathematical background**: See `docs/` folder for algorithm specifications
+- **Mathematical background**: See `planning-docs/` folder for algorithm specifications
 - **API documentation**: https://bbuchsbaum.github.io/hatsa/
 - **Project status**: [HATSA_PROJECT_STATUS.md](./HATSA_PROJECT_STATUS.md)
 
