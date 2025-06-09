@@ -348,8 +348,13 @@ compute_spectral_sketch_sparse <- function(L_conn_i_sparse, k,
   if (V_p > 1 && num_eigs_to_request >= V_p) { 
       num_eigs_to_request = V_p -1 
   }
-  if (num_eigs_to_request <=0 && V_p > 0) { 
-      use_dense_eigen <- TRUE 
+  if (num_eigs_to_request <=0 && V_p > 0) {
+      use_dense_eigen <- TRUE
+  }
+
+  if (!use_dense_eigen && !requireNamespace("PRIMME", quietly = TRUE)) {
+      use_dense_eigen <- TRUE
+      if (interactive()) message("PRIMME package not installed; falling back to base::eigen.")
   }
 
   if (use_dense_eigen) {
