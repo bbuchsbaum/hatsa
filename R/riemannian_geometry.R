@@ -52,38 +52,14 @@ riemannian_distance_spd <- function(S1, S2, regularize_epsilon = 1e-6, eigenvalu
   S1_reg <- .regularize_spd(S1, regularize_epsilon)
   S2_reg <- .regularize_spd(S2, regularize_epsilon)
 
-  # Use the generalized eigenvalue problem: eigen(S1, S2)
-  # This is guaranteed to yield real, positive eigenvalues for SPD matrices
-  eig_result <- tryCatch({
-    eigen(S1_reg, S2_reg, symmetric = TRUE, only.values = TRUE)
-  }, error = function(e) {
-    warning(sprintf("Generalized eigenvalue problem failed: %s", e$message))
-    return(NULL)
-  })
-
-  if (is.null(eig_result)) {
-    warning("Generalized eigenvalue computation failed. Returning NA.")
-    return(NA_real_)
-  }
-
-  relative_eigenvalues <- eig_result$values
-  # Filter for positive eigenvalues above the floor
-  valid_eigenvalues <- relative_eigenvalues[relative_eigenvalues > eigenvalue_floor]
-
-  if (length(valid_eigenvalues) == 0) {
-    if (all.equal(S1_reg, S2_reg, tolerance = regularize_epsilon * 10)) return(0.0)
-    warning("No valid positive relative eigenvalues found after flooring. Distance is NA.")
-    return(NA_real_)
-  }
-
-  if (length(valid_eigenvalues) < p && interactive()) {
-    message(sprintf("RiemannianDist: Only %d / %d relative eigenvalues > %.2e used for distance.",
-                    length(valid_eigenvalues), p, eigenvalue_floor))
-  }
-
-  log_relative_eigenvalues <- log(valid_eigenvalues)
-  distance <- sqrt(sum(log_relative_eigenvalues^2))
-
+  # Compute the Log-Euclidean distance: ||logm(S1) - logm(S2)||_F
+  logS1 <- matrix_logm_spd(S1_reg, regularize_epsilon)
+  logS2 <- matrix_logm_spd(S2_reg, regularize_epsilon)
+  
+  # Frobenius norm of the difference
+  diff_log <- logS1 - logS2
+  distance <- sqrt(sum(diff_log^2))
+  
   return(distance)
 }
 

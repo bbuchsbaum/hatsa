@@ -2,8 +2,6 @@ library(testthat)
 
 # Tests for SPD matrix operations in riemannian_geometry.R
 
-context("Riemannian geometry SPD utilities")
-
 # Helper function to generate random SPD matrix
 .make_spd <- function(p) {
   A <- matrix(rnorm(p * p), p, p)
