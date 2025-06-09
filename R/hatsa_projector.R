@@ -623,6 +623,14 @@ summary.hatsa_projector <- function(object, ...,
     summary_info$sum_k_selected_eigenvalues_per_subject <- numeric(0)
   }
 
+  # --- HMET-006: Condition Number of T_anchor_final ---
+  if (!is.null(object$T_anchor_final) && is.matrix(object$T_anchor_final) && 
+      nrow(object$T_anchor_final) > 0 && ncol(object$T_anchor_final) > 0) {
+    summary_info$condition_number_T_anchor_final <- kappa(object$T_anchor_final, exact = TRUE)
+  } else {
+    summary_info$condition_number_T_anchor_final <- NA
+  }
+
   # --- HMET-001: Eigengap Ratios ---
   if (object$parameters$N_subjects > 0 && object$parameters$k > 1 && !is.null(object$Lambda_original_gaps_list)) {
     gaps_list_valid <- Filter(Negate(is.null), object$Lambda_original_gaps_list)
@@ -734,6 +742,15 @@ print.summary.hatsa_projector <- function(x, ...) {
   if (!is.null(x$mean_sum_k_selected_eigenvalues) && !is.na(x$mean_sum_k_selected_eigenvalues)) {
     cat("Mean Sum of k Selected Eigenvalues (Energy): ", sprintf("%.4f", x$mean_sum_k_selected_eigenvalues), "\n")
     cat("SD Sum of k Selected Eigenvalues: ", sprintf("%.4f", x$sd_sum_k_selected_eigenvalues), "\n")
+  }
+
+  # Display Condition Number
+  if (!is.null(x$condition_number_T_anchor_final) && !is.na(x$condition_number_T_anchor_final)) {
+    cat("Condition Number of T_anchor_final: ", sprintf("%.1f", x$condition_number_T_anchor_final))
+    if (x$condition_number_T_anchor_final > 1e4) {
+      cat(" [WARNING: High condition number may indicate instability]")
+    }
+    cat("\n")
   }
 
   # Display Eigengap Ratios
