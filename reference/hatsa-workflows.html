@@ -57,7 +57,7 @@ from basic alignment to advanced task-informed analyses.</p>
 <span><span class="va">params</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hatsa_suggest.html">hatsa_suggest</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Run basic HATSA</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/hatsa/man/hatsa-package.html" class="external-link">hatsa</a></span><span class="op">(</span><span class="va">data</span>, components <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">components</span><span class="op">)</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa</a></span><span class="op">(</span><span class="va">data</span>, components <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">components</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Extract aligned data</span></span>
 <span><span class="va">aligned_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/hatsa-accessors.html">get_aligned_data</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
@@ -95,7 +95,7 @@ from basic alignment to advanced task-informed analyses.</p>
 <div class="sourceCode"><pre><code><span></span>
 <span><span class="co"># Manual anchor selection based on ROI</span></span>
 <span><span class="va">roi_indices</span> <span class="op">&lt;-</span> <span class="fu">get_roi_voxels</span><span class="op">(</span><span class="st">"visual_cortex"</span><span class="op">)</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/hatsa/man/hatsa-package.html" class="external-link">hatsa</a></span><span class="op">(</span><span class="va">data</span>, anchors <span class="op">=</span> <span class="va">roi_indices</span><span class="op">)</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa</a></span><span class="op">(</span><span class="va">data</span>, anchors <span class="op">=</span> <span class="va">roi_indices</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Multi-resolution anchor selection</span></span>
 <span><span class="va">anchors</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/select_anchors_mra.html">select_anchors_mra</a></span><span class="op">(</span></span>
@@ -103,7 +103,7 @@ from basic alignment to advanced task-informed analyses.</p>
 <span>  n_anchors <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  n_resolutions <span class="op">=</span> <span class="fl">5</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/hatsa/man/hatsa-package.html" class="external-link">hatsa</a></span><span class="op">(</span><span class="va">data</span>, anchors <span class="op">=</span> <span class="va">anchors</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa</a></span><span class="op">(</span><span class="va">data</span>, anchors <span class="op">=</span> <span class="va">anchors</span><span class="op">)</span></span></code></pre></div>
 
     </div>
     <div class="section level2">
@@ -119,7 +119,7 @@ from basic alignment to advanced task-informed analyses.</p>
 <span><span class="op">}</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Run with custom preprocessing</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/hatsa/man/hatsa-package.html" class="external-link">hatsa</a></span><span class="op">(</span><span class="va">data_clean</span>, preset <span class="op">=</span> <span class="st">"accurate"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa</a></span><span class="op">(</span><span class="va">data_clean</span>, preset <span class="op">=</span> <span class="st">"accurate"</span><span class="op">)</span></span></code></pre></div>
 
     </div>
     <div class="section level2">
@@ -128,8 +128,8 @@ from basic alignment to advanced task-informed analyses.</p>
 
 <div class="sourceCode"><pre><code><span></span>
 <span><span class="co"># Align multiple groups separately</span></span>
-<span><span class="va">result_controls</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/hatsa/man/hatsa-package.html" class="external-link">hatsa</a></span><span class="op">(</span><span class="va">data</span><span class="op">[</span><span class="va">control_idx</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">result_patients</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/hatsa/man/hatsa-package.html" class="external-link">hatsa</a></span><span class="op">(</span><span class="va">data</span><span class="op">[</span><span class="va">patient_idx</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">result_controls</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa</a></span><span class="op">(</span><span class="va">data</span><span class="op">[</span><span class="va">control_idx</span><span class="op">]</span><span class="op">)</span></span>
+<span><span class="va">result_patients</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa</a></span><span class="op">(</span><span class="va">data</span><span class="op">[</span><span class="va">patient_idx</span><span class="op">]</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Compare alignment quality</span></span>
 <span><span class="fu">compare_alignments</span><span class="op">(</span><span class="va">result_controls</span>, <span class="va">result_patients</span><span class="op">)</span></span>
@@ -144,12 +144,12 @@ from basic alignment to advanced task-informed analyses.</p>
 
 <div class="sourceCode"><pre><code><span></span>
 <span><span class="co"># For large datasets, use fast preset</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/hatsa/man/hatsa-package.html" class="external-link">hatsa</a></span><span class="op">(</span><span class="va">big_data</span>, preset <span class="op">=</span> <span class="st">"fast"</span><span class="op">)</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa</a></span><span class="op">(</span><span class="va">big_data</span>, preset <span class="op">=</span> <span class="st">"fast"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># For parallel processing (if available)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>hatsa.parallel <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>hatsa.cores <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/hatsa/man/hatsa-package.html" class="external-link">hatsa</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># For very high-dimensional data</span></span>
 <span><span class="co"># First reduce dimensions</span></span>
@@ -157,7 +157,7 @@ from basic alignment to advanced task-informed analyses.</p>
 <span>  <span class="va">svd_X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/svd.html" class="external-link">svd</a></span><span class="op">(</span><span class="va">X</span>, nu <span class="op">=</span> <span class="fl">100</span>, nv <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span>
 <span>  <span class="va">svd_X</span><span class="op">$</span><span class="va">u</span> </span>
 <span><span class="op">}</span><span class="op">)</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/hatsa/man/hatsa-package.html" class="external-link">hatsa</a></span><span class="op">(</span><span class="va">data_reduced</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://bbuchsbaum.github.io/hatsa/reference/hatsa-package.html">hatsa</a></span><span class="op">(</span><span class="va">data_reduced</span><span class="op">)</span></span></code></pre></div>
 
     </div>
 
