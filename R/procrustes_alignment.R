@@ -425,8 +425,10 @@ perform_geometric_gpa_refinement <- function(A_originals_list,
       if (verbose) message("Geo-GPA converged.")
       break
     }
-    if (iter == n_refine && verbose) {
-        message("Geo-GPA reached max iterations without specified convergence.")
+    if (iter == n_refine) {
+        msg <- "Geo-GPA reached max iterations without convergence."
+        if (verbose) message(msg)
+        warning(paste(msg, "Consider increasing n_refine or inspecting anchor matrices."))
     }
   }
 

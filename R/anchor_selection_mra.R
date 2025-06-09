@@ -7,7 +7,8 @@
 #'
 #' @param U_original_list_pilot A list of original (unaligned) sketch matrices
 #'   (V_p x k) for a set of pilot subjects. These are used to evaluate candidate anchors.
-#' @param k_spectral_rank Integer, the spectral rank k used to generate `U_original_list_pilot`.
+#' @param spectral_rank_k Integer, the spectral rank `k` used to generate
+#'   `U_original_list_pilot`.
 #' @param m_target Integer, the desired number of anchors to select.
 #' @param total_parcels Integer, the total number of parcels (V_p) available for selection.
 #'   If NULL, inferred from `U_original_list_pilot`.
@@ -27,10 +28,18 @@
 #' @param riemannian_dispersion_options A list of options to pass to
 #'   `hatsa::riemannian_dispersion_spd` (e.g., `spd_metric`, `use_geometric_median`).
 #' @param min_anchors_for_metrics Integer. Minimum number of selected anchors required before
-#'   kappa and dispersion metrics are considered stable enough to compute. Default is `k_spectral_rank`.
+#'   kappa and dispersion metrics are considered stable enough to compute. Default is
+#'   `spectral_rank_k`.
 #' @param verbose Logical. If TRUE, print progress messages. Default: TRUE.
 #'
 #' @return A vector of selected anchor indices (1-based), sorted.
+#'
+#' @section Methodological Details:
+#' MRA-Select greedily optimizes a composite score balancing the
+#' condition number of the mean anchor matrix with the Riemannian
+#' dispersion of subject covariance matrices on the SPD manifold.
+#' Candidate anchors that maximize this score are iteratively added
+#' until \code{m_target} anchors are selected.
 #' @export
 #' @importFrom stats cov sd svd
 #'
@@ -44,14 +53,14 @@
 #' #                           simplify = FALSE)
 #' # selected_anchors_mra <- select_anchors_mra(
 #' #   U_original_list_pilot = U_pilot_list,
-#' #   k_spectral_rank = k_rank,
+#' #   spectral_rank_k = k_rank,
 #' #   m_target = 15,
 #' #   total_parcels = V_p_total,
 #' #   verbose = TRUE
 #' # )
 #' # print(selected_anchors_mra)
 select_anchors_mra <- function(U_original_list_pilot,
-                               k_spectral_rank,
+                               spectral_rank_k,
                                m_target,
                                total_parcels = NULL,
                                max_kappa = 100,
@@ -79,7 +88,7 @@ select_anchors_mra <- function(U_original_list_pilot,
     stop("m_target must be positive and not exceed total_parcels.")
   }
   if (is.null(min_anchors_for_metrics)) {
-    min_anchors_for_metrics <- k_spectral_rank
+    min_anchors_for_metrics <- spectral_rank_k
   }
   if (min_anchors_for_metrics < 1) min_anchors_for_metrics <- 1
   
@@ -141,11 +150,11 @@ select_anchors_mra <- function(U_original_list_pilot,
 
     # Metric 1: Kappa of the Euclidean mean of anchor rows from U_original_list_pilot
     kappa_val <- Inf
-    if (num_current_anchors >= min_anchors_for_metrics || num_current_anchors >= k_spectral_rank) {
+    if (num_current_anchors >= min_anchors_for_metrics || num_current_anchors >= spectral_rank_k) {
         valid_anchor_matrices <- Filter(Negate(is.null), anchor_rows_list)
         if (length(valid_anchor_matrices) > 0) {
-            # Check all matrices have same dim: num_current_anchors x k_spectral_rank
-            if (!all(sapply(valid_anchor_matrices, function(m) all(dim(m) == c(num_current_anchors, k_spectral_rank))))) {
+            # Check all matrices have same dim: num_current_anchors x spectral_rank_k
+            if (!all(sapply(valid_anchor_matrices, function(m) all(dim(m) == c(num_current_anchors, spectral_rank_k))))) {
                 warning("Inconsistent dimensions in pilot anchor matrices for kappa calculation.")
             } else {
                 mean_anchor_matrix <- Reduce("+", valid_anchor_matrices) / length(valid_anchor_matrices)
@@ -158,16 +167,16 @@ select_anchors_mra <- function(U_original_list_pilot,
 
     # Metric 2: Riemannian Dispersion of covariance matrices of anchor rows
     dispersion_val <- Inf
-    if (num_current_anchors >= min_anchors_for_metrics || num_current_anchors >= k_spectral_rank) { # Need enough rows for cov
+    if (num_current_anchors >= min_anchors_for_metrics || num_current_anchors >= spectral_rank_k) { # Need enough rows for cov
         spd_list_pilot <- lapply(anchor_rows_list, function(anchor_rows_subj) {
             if (is.null(anchor_rows_subj)) return(NULL)
-            if (nrow(anchor_rows_subj) < 2 || nrow(anchor_rows_subj) < k_spectral_rank) return(NULL) # cov needs multiple observations
+            if (nrow(anchor_rows_subj) < 2 || nrow(anchor_rows_subj) < spectral_rank_k) return(NULL) # cov needs multiple observations
             tryCatch(stats::cov(anchor_rows_subj), error = function(e) NULL)
         })
         valid_spd_list <- Filter(Negate(is.null), spd_list_pilot)
         
         if (length(valid_spd_list) > 1) {
-            valid_spd_list <- Filter(function(S) is.matrix(S) && all(dim(S) == c(k_spectral_rank, k_spectral_rank)), valid_spd_list)
+            valid_spd_list <- Filter(function(S) is.matrix(S) && all(dim(S) == c(spectral_rank_k, spectral_rank_k)), valid_spd_list)
             if (length(valid_spd_list) > 1) {
                 disp_opts <- riemannian_dispersion_options
                 disp_opts$verbose <- FALSE

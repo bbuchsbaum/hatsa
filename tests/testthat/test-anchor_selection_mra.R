@@ -9,7 +9,7 @@ describe("select_anchors_mra basic functionality", {
     pilot <- make_pilot(3, 4, 2)
     res <- select_anchors_mra(
       U_original_list_pilot = pilot,
-      k_spectral_rank = 2,
+      spectral_rank_k = 2,
       m_target = 2,
       total_parcels = 4,
       weight_dispersion = 0,
@@ -25,7 +25,7 @@ describe("select_anchors_mra basic functionality", {
     pilot <- make_pilot(2, 4, 2)
     res <- select_anchors_mra(
       U_original_list_pilot = pilot,
-      k_spectral_rank = 2,
+      spectral_rank_k = 2,
       m_target = 3,
       total_parcels = 4,
       initial_selection = c(2L),
@@ -43,7 +43,7 @@ describe("select_anchors_mra basic functionality", {
     expect_warning(
       res <- select_anchors_mra(
         U_original_list_pilot = pilot,
-        k_spectral_rank = 2,
+        spectral_rank_k = 2,
         m_target = 2,
         total_parcels = 3,
         initial_selection = c(1L),
@@ -62,7 +62,7 @@ describe("select_anchors_mra basic functionality", {
     expect_error(
       select_anchors_mra(
         U_original_list_pilot = pilot,
-        k_spectral_rank = 2,
+        spectral_rank_k = 2,
         m_target = 2,
         total_parcels = 3,
         initial_selection = c(0L),
@@ -75,7 +75,7 @@ describe("select_anchors_mra basic functionality", {
     expect_error(
       select_anchors_mra(
         U_original_list_pilot = pilot,
-        k_spectral_rank = 2,
+        spectral_rank_k = 2,
         m_target = 2,
         total_parcels = 3,
         candidate_pool = c(1L, 4L),
@@ -88,7 +88,7 @@ describe("select_anchors_mra basic functionality", {
     expect_error(
       select_anchors_mra(
         U_original_list_pilot = pilot,
-        k_spectral_rank = 2,
+        spectral_rank_k = 2,
         m_target = 0,
         total_parcels = 3,
         weight_dispersion = 0,
