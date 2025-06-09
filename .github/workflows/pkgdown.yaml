@@ -4,23 +4,13 @@ on:
   push:
     branches: [main, master]
   pull_request:
-    branches: [main, master]
   release:
     types: [published]
   workflow_dispatch:
 
-name: pkgdown
+name: pkgdown.yaml
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+permissions: read-all
 
 jobs:
   pkgdown:
@@ -30,9 +20,8 @@ jobs:
       group: pkgdown-${{ github.event_name != 'pull_request' || github.run_id }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -51,17 +40,10 @@ jobs:
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
 
-      - name: Configure pages
+      - name: Deploy to GitHub pages 🚀
         if: github.event_name != 'pull_request'
-        uses: actions/configure-pages@v4
-
-      - name: Upload to GitHub pages
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-pages-artifact@v3
+        uses: JamesIves/github-pages-deploy-action@v4.5.0
         with:
-          path: docs
-
-      - name: Deploy to GitHub pages
-        if: github.event_name != 'pull_request'
-        id: deployment
-        uses: actions/deploy-pages@v4
+          clean: false
+          branch: gh-pages
+          folder: docs
