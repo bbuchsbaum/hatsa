@@ -161,7 +161,10 @@ zscore_nonzero_sparse <- function(x) {
 #' Helper for status messages
 #'
 #' Prints a timestamped stage message when \code{verbose} is TRUE. If
-#' \code{interactive_only} is TRUE the message is printed only during interactive sessions.
+#' \code{interactive_only} is TRUE the message is printed only during interactive
+#' sessions. When running unit tests (i.e. the \code{TESTTHAT} environment
+#' variable is set to \code{"true"}), messages are suppressed even in interactive
+#' mode.
 #'
 #' @param message_text Text message to display.
 #' @param verbose Whether to print the message.
@@ -169,7 +172,10 @@ zscore_nonzero_sparse <- function(x) {
 #' @keywords internal
 message_stage <- function(message_text, verbose = TRUE, interactive_only = FALSE) {
   if (!verbose) return(invisible(NULL))
-  if (interactive_only && !interactive()) return(invisible(NULL))
+  if (interactive_only) {
+    if (!interactive()) return(invisible(NULL))
+    if (identical(Sys.getenv("TESTTHAT"), "true")) return(invisible(NULL))
+  }
   message(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "-", message_text))
 }
 

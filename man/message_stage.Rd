@@ -15,6 +15,8 @@ message_stage(message_text, verbose = TRUE, interactive_only = FALSE)
 }
 \description{
 Prints a timestamped stage message when \code{verbose} is TRUE. If
-\code{interactive_only} is TRUE the message is printed only during interactive sessions.
+\code{interactive_only} is TRUE the message is printed only during interactive
+sessions. When the \code{TESTTHAT} environment variable is \code{"true"},
+messages are suppressed even in interactive mode.
 }
 \keyword{internal}
