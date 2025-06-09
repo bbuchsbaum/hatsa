@@ -1,5 +1,5 @@
 ---
-title: "Core HATSA with a Toy-Connectome Generator"
+title: "Core HATSA with a Toy-Connectome"
 author: "HATSA Vignette Contributor"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
@@ -167,8 +167,7 @@ params_core_hatsa <- list(
   n_refine = 2,         # Number of GPA refinement iterations
   alpha_laplacian = 0.95, # For lazy random walk Laplacian
   
-  # GPA parameters
-  gpa_method = "standard",
+  # GPA parameters - gpa_method is handled internally
   
   # Control verbosity and parallel processing
   verbose = FALSE,
@@ -199,7 +198,6 @@ hatsa_results_toy <- run_task_hatsa(
     k_conn_neg        = 7, 
     n_refine          = 2, 
     alpha_laplacian   = 0.95, # Example value, adjust as needed
-    gpa_method        = "standard", # Example value
     verbose           = FALSE
     # future_plan argument removed; managed by future::plan() above
 )
