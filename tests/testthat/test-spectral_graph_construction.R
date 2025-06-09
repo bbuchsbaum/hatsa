@@ -624,14 +624,11 @@ test_that("TCK-SGC-009: compute_spectral_sketch_sparse handles rank deficiency",
   )
   
   # Also test the boundary case: requesting exactly the number of informative eigenvalues
-  # In this specific case (Vp=7, k=5 requesting 6 eigs), eigs_sym only returns 4 informative ones.
-  # So, the function should still error because 4 < 5.
+  # In this specific case (Vp=7, k=5), we have exactly 5 non-zero eigenvalues, so it should succeed
   k_target_boundary = num_non_zero_eigenvals # Request 5
-  expect_error(
-    compute_spectral_sketch_sparse(L_disconnected, k = k_target_boundary, eigenvalue_tol = 1e-8),
-    regexp = "Rank deficiency|too many zero eigenvalues|Found only.*informative eigenvectors.*but k=.*was requested",
-    info=paste("Boundary case k=", k_target_boundary, "should error if eigs_sym doesn't return enough.")
-  )
+  result_boundary <- compute_spectral_sketch_sparse(L_disconnected, k = k_target_boundary, eigenvalue_tol = 1e-8)
+  expect_equal(ncol(result_boundary$vectors), k_target_boundary)
+  expect_equal(length(result_boundary$values), k_target_boundary)
 })
 
 # Test TCK-SGC-010: compute_spectral_sketch_sparse - Edge Cases k=0, k=1
