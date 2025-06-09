@@ -87,14 +87,16 @@ make_toy_hatsa <- function(V=40, k=5, Nsubj=6, Tlen=300,
   R_list <- replicate(Nsubj, rand_SO(k), simplify = FALSE)
 
   latent <- function(){
-    Z <- matrix(0,Tlen,k)
-    # Initialize with stationary variance for AR(1) if phi < 1
+    Z <- matrix(0, Tlen, k)
+    var_vec <- seq(1, 2, length.out = k)  # anisotropic variances
     if (abs(phi) < 1) {
-        Z[1,] <- rnorm(k, sd = sqrt(1 / (1 - phi^2)))
+        Z[1,] <- rnorm(k, sd = sqrt(var_vec/(1 - phi^2)))
     } else {
-        Z[1,] <- rnorm(k)
+        Z[1,] <- rnorm(k, sd = sqrt(var_vec))
     }
-    for(t in 2:Tlen) Z[t,] <- phi*Z[t-1,] + rnorm(k)
+    for(t in 2:Tlen) {
+      Z[t,] <- phi * Z[t-1,] + rnorm(k, sd = sqrt(var_vec))
+    }
     Z}
 
   X_list <- lapply(R_list, function(Ri){
@@ -144,14 +146,14 @@ X_list_toy <- toy_data$X_list
 U_true_toy <- toy_data$U_true
 R_true_list_toy <- toy_data$R_true_list
 
-# 2. Set up parameters for run_task_hatsa (core HATSA mode)
+# 2. Set up parameters for task_hatsa (core HATSA mode)
 # Anchor selection: For simplicity, let's pick the first 10 parcels as anchors.
 # In a real scenario, anchor selection would be more data-driven.
 anchor_indices_toy <- 1:10 
 k_spectral_rank_toy <- 5 # Must match k from toy data generation for meaningful comparison
 
 # HATSA parameters (using defaults or simple values for demonstration)
-# Refer to `?run_task_hatsa` for detailed parameter descriptions.
+# Refer to `?task_hatsa` for detailed parameter descriptions.
 params_core_hatsa <- list(
   subject_data_list = X_list_toy,
   task_data_list = NULL, # Indicates core_hatsa method
@@ -175,31 +177,31 @@ params_core_hatsa <- list(
 )
 
 # 3. Run Core HATSA
-# We use run_task_hatsa with task_data_list = NULL for core HATSA.
+# We use `task_hatsa` with `task_data_list = NULL` for core HATSA.
 # Set future plan for sequential execution for deterministic vignette run
 if (requireNamespace("future", quietly = TRUE)) {
   old_plan <- future::plan(future::sequential)
   on.exit(future::plan(old_plan), add = TRUE)
 } else {
-  # If future is not available, run_task_hatsa should handle sequential execution by default
+  # If future is not available, task_hatsa should handle sequential execution by default
   # or its internal future_lapply calls will default to sequential.
 }
 
 message("Running Core HATSA on toy data...")
-# Corrected argument names as per typical run_task_hatsa signature
-# Vp and Nsub are usually inferred within run_task_hatsa or its helpers
-hatsa_results_toy <- run_task_hatsa(
+# Parameters are passed via task_hatsa_opts
+hatsa_results_toy <- task_hatsa(
     subject_data_list = X_list_toy,
-    task_data_list    = NULL,             # Ensures core_hatsa method is triggered
     anchor_indices    = anchor_indices_toy,
-    spectral_rank_k   = k_spectral_rank_toy, # Corrected name
-    task_method       = "core_hatsa",     # Explicitly core_hatsa (though NULL task_data_list implies it)
-    k_conn_pos        = 7, 
-    k_conn_neg        = 7, 
-    n_refine          = 2, 
-    alpha_laplacian   = 0.95, # Example value, adjust as needed
-    verbose           = FALSE
-    # future_plan argument removed; managed by future::plan() above
+    spectral_rank_k   = k_spectral_rank_toy,
+    task_data_list    = NULL,             # Ensures core_hatsa method is triggered
+    task_method       = "core_hatsa",
+    opts = task_hatsa_opts(
+      k_conn_pos      = 7,
+      k_conn_neg      = 7,
+      n_refine        = 2,
+      alpha_laplacian = 0.95
+    ),
+    verbose = FALSE
 )
 message("Core HATSA run complete.")
 
@@ -217,7 +219,7 @@ print(misalignment_scores)
 # We can also check the mean misalignment
 print(paste("Mean misalignment angle:", round(mean(misalignment_scores), 2), "degrees"))
 
-# For an SNR of 2.5, we expect relatively low misalignment angles (e.g., < 10-15 degrees for a reasonable SNR like 2.5, and ideally lower as suggested by the original prompt <5 degrees)
+# For an SNR of 2.5, we expect small misalignment angles (typically under 10 degrees)
 # The exact values depend on the noise realization and the specific k.
 # The user's original example mentioned < ~5 degrees for SNR=2.5. The geodesic distance
 # might yield slightly different values but should be consistently small for good recovery.
@@ -251,7 +253,7 @@ procrustes_align_v <- function(est_v, true_U) {
 
 ## Interpreting the Results
 
-The primary output for assessing HATSA's core performance in this toy example is the list of misalignment angles. Small angles (e.g., typically less than 10-15 degrees for a reasonable SNR like 2.5, and ideally lower as suggested by the original prompt <5 degrees) indicate that HATSA has successfully recovered the subject-specific rotations.
+The primary output for assessing HATSA's core performance in this toy example is the list of misalignment angles. Small angles (typically below 10 degrees for an SNR of 2.5) indicate that HATSA has successfully recovered the subject-specific rotations.
 
 The `make_toy_hatsa` generator is designed such that:
 *   **Known Rotations**: Directly tests the Generalized Procrustes Analysis (GPA) component of HATSA.
