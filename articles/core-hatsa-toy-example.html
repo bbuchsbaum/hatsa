@@ -159,14 +159,16 @@ helper to calculate misalignment angles.</p>
 <span>  <span class="va">R_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">replicate</a></span><span class="op">(</span><span class="va">Nsubj</span>, <span class="fu">rand_SO</span><span class="op">(</span><span class="va">k</span><span class="op">)</span>, simplify <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span>  <span class="va">latent</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span><span class="op">{</span></span>
-<span>    <span class="va">Z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>,<span class="va">Tlen</span>,<span class="va">k</span><span class="op">)</span></span>
-<span>    <span class="co"># Initialize with stationary variance for AR(1) if phi &lt; 1</span></span>
+<span>    <span class="va">Z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fl">0</span>, <span class="va">Tlen</span>, <span class="va">k</span><span class="op">)</span></span>
+<span>    <span class="va">var_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, length.out <span class="op">=</span> <span class="va">k</span><span class="op">)</span>  <span class="co"># anisotropic variances</span></span>
 <span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">phi</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">1</span><span class="op">)</span> <span class="op">{</span></span>
-<span>        <span class="va">Z</span><span class="op">[</span><span class="fl">1</span>,<span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">k</span>, sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">phi</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>        <span class="va">Z</span><span class="op">[</span><span class="fl">1</span>,<span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">k</span>, sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">var_vec</span><span class="op">/</span><span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">phi</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>        <span class="va">Z</span><span class="op">[</span><span class="fl">1</span>,<span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">k</span><span class="op">)</span></span>
+<span>        <span class="va">Z</span><span class="op">[</span><span class="fl">1</span>,<span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">k</span>, sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">var_vec</span><span class="op">)</span><span class="op">)</span></span>
 <span>    <span class="op">}</span></span>
-<span>    <span class="kw">for</span><span class="op">(</span><span class="va">t</span> <span class="kw">in</span> <span class="fl">2</span><span class="op">:</span><span class="va">Tlen</span><span class="op">)</span> <span class="va">Z</span><span class="op">[</span><span class="va">t</span>,<span class="op">]</span> <span class="op">&lt;-</span> <span class="va">phi</span><span class="op">*</span><span class="va">Z</span><span class="op">[</span><span class="va">t</span><span class="op">-</span><span class="fl">1</span>,<span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">k</span><span class="op">)</span></span>
+<span>    <span class="kw">for</span><span class="op">(</span><span class="va">t</span> <span class="kw">in</span> <span class="fl">2</span><span class="op">:</span><span class="va">Tlen</span><span class="op">)</span> <span class="op">{</span></span>
+<span>      <span class="va">Z</span><span class="op">[</span><span class="va">t</span>,<span class="op">]</span> <span class="op">&lt;-</span> <span class="va">phi</span> <span class="op">*</span> <span class="va">Z</span><span class="op">[</span><span class="va">t</span><span class="op">-</span><span class="fl">1</span>,<span class="op">]</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">k</span>, sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">var_vec</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
 <span>    <span class="va">Z</span><span class="op">}</span></span>
 <span></span>
 <span>  <span class="va">X_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">R_list</span>, <span class="kw">function</span><span class="op">(</span><span class="va">Ri</span><span class="op">)</span><span class="op">{</span></span>
@@ -214,14 +216,14 @@ algorithm.</p>
 <span><span class="va">U_true_toy</span> <span class="op">&lt;-</span> <span class="va">toy_data</span><span class="op">$</span><span class="va">U_true</span></span>
 <span><span class="va">R_true_list_toy</span> <span class="op">&lt;-</span> <span class="va">toy_data</span><span class="op">$</span><span class="va">R_true_list</span></span>
 <span></span>
-<span><span class="co"># 2. Set up parameters for run_task_hatsa (core HATSA mode)</span></span>
+<span><span class="co"># 2. Set up parameters for task_hatsa (core HATSA mode)</span></span>
 <span><span class="co"># Anchor selection: For simplicity, let's pick the first 10 parcels as anchors.</span></span>
 <span><span class="co"># In a real scenario, anchor selection would be more data-driven.</span></span>
 <span><span class="va">anchor_indices_toy</span> <span class="op">&lt;-</span> <span class="fl">1</span><span class="op">:</span><span class="fl">10</span> </span>
 <span><span class="va">k_spectral_rank_toy</span> <span class="op">&lt;-</span> <span class="fl">5</span> <span class="co"># Must match k from toy data generation for meaningful comparison</span></span>
 <span></span>
 <span><span class="co"># HATSA parameters (using defaults or simple values for demonstration)</span></span>
-<span><span class="co"># Refer to `?run_task_hatsa` for detailed parameter descriptions.</span></span>
+<span><span class="co"># Refer to `?task_hatsa` for detailed parameter descriptions.</span></span>
 <span><span class="va">params_core_hatsa</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>  subject_data_list <span class="op">=</span> <span class="va">X_list_toy</span>,</span>
 <span>  task_data_list <span class="op">=</span> <span class="cn">NULL</span>, <span class="co"># Indicates core_hatsa method</span></span>
@@ -245,36 +247,36 @@ algorithm.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 3. Run Core HATSA</span></span>
-<span><span class="co"># We use run_task_hatsa with task_data_list = NULL for core HATSA.</span></span>
+<span><span class="co"># We use `task_hatsa` with `task_data_list = NULL` for core HATSA.</span></span>
 <span><span class="co"># Set future plan for sequential execution for deterministic vignette run</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"future"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">old_plan</span> <span class="op">&lt;-</span> <span class="fu">future</span><span class="fu">::</span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="fu">future</span><span class="fu">::</span><span class="va"><a href="https://future.futureverse.org/reference/sequential.html" class="external-link">sequential</a></span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/on.exit.html" class="external-link">on.exit</a></span><span class="op">(</span><span class="fu">future</span><span class="fu">::</span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">old_plan</span><span class="op">)</span>, add <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>  <span class="co"># If future is not available, run_task_hatsa should handle sequential execution by default</span></span>
+<span>  <span class="co"># If future is not available, task_hatsa should handle sequential execution by default</span></span>
 <span>  <span class="co"># or its internal future_lapply calls will default to sequential.</span></span>
 <span><span class="op">}</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Running Core HATSA on toy data..."</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Running Core HATSA on toy data...</span></span>
-<span><span class="co"># Corrected argument names as per typical run_task_hatsa signature</span></span>
-<span><span class="co"># Vp and Nsub are usually inferred within run_task_hatsa or its helpers</span></span>
-<span><span class="va">hatsa_results_toy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/task_hatsa.html">run_task_hatsa</a></span><span class="op">(</span></span>
+<span><span class="co"># Parameters are passed via task_hatsa_opts</span></span>
+<span><span class="va">hatsa_results_toy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/task_hatsa.html">task_hatsa</a></span><span class="op">(</span></span>
 <span>    subject_data_list <span class="op">=</span> <span class="va">X_list_toy</span>,</span>
-<span>    task_data_list    <span class="op">=</span> <span class="cn">NULL</span>,             <span class="co"># Ensures core_hatsa method is triggered</span></span>
 <span>    anchor_indices    <span class="op">=</span> <span class="va">anchor_indices_toy</span>,</span>
-<span>    spectral_rank_k   <span class="op">=</span> <span class="va">k_spectral_rank_toy</span>, <span class="co"># Corrected name</span></span>
-<span>    task_method       <span class="op">=</span> <span class="st">"core_hatsa"</span>,     <span class="co"># Explicitly core_hatsa (though NULL task_data_list implies it)</span></span>
-<span>    k_conn_pos        <span class="op">=</span> <span class="fl">7</span>, </span>
-<span>    k_conn_neg        <span class="op">=</span> <span class="fl">7</span>, </span>
-<span>    n_refine          <span class="op">=</span> <span class="fl">2</span>, </span>
-<span>    alpha_laplacian   <span class="op">=</span> <span class="fl">0.95</span>, <span class="co"># Example value, adjust as needed</span></span>
-<span>    verbose           <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span>    <span class="co"># future_plan argument removed; managed by future::plan() above</span></span>
+<span>    spectral_rank_k   <span class="op">=</span> <span class="va">k_spectral_rank_toy</span>,</span>
+<span>    task_data_list    <span class="op">=</span> <span class="cn">NULL</span>,             <span class="co"># Ensures core_hatsa method is triggered</span></span>
+<span>    task_method       <span class="op">=</span> <span class="st">"core_hatsa"</span>,</span>
+<span>    opts <span class="op">=</span> <span class="fu"><a href="../reference/task_hatsa_opts.html">task_hatsa_opts</a></span><span class="op">(</span></span>
+<span>      k_conn_pos      <span class="op">=</span> <span class="fl">7</span>,</span>
+<span>      k_conn_neg      <span class="op">=</span> <span class="fl">7</span>,</span>
+<span>      n_refine        <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>      alpha_laplacian <span class="op">=</span> <span class="fl">0.95</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning in run_task_hatsa(subject_data_list = X_list_toy, task_data_list =</span></span>
-<span><span class="co">#&gt; NULL, : run_task_hatsa() is kept for backward compatibility; new code should</span></span>
-<span><span class="co">#&gt; call task_hatsa()</span></span>
+<span><span class="co">#&gt; Warning in run_task_hatsa(subject_data_list = subject_data_list, anchor_indices</span></span>
+<span><span class="co">#&gt; = anchor_indices, : run_task_hatsa() is kept for backward compatibility; new</span></span>
+<span><span class="co">#&gt; code should call task_hatsa()</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/message.html" class="external-link">message</a></span><span class="op">(</span><span class="st">"Core HATSA run complete."</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Core HATSA run complete.</span></span>
 <span></span>
@@ -289,13 +291,13 @@ algorithm.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="st">"Misalignment angles (degrees) between estimated and true rotations:"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Misalignment angles (degrees) between estimated and true rotations:"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">misalignment_scores</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 174.4600 169.3468 164.2563 172.1510 156.9429 157.4501</span></span>
+<span><span class="co">#&gt; [1] 158.0493 160.8006 164.5369 181.9169 153.6226 195.2386</span></span>
 <span></span>
 <span><span class="co"># We can also check the mean misalignment</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Mean misalignment angle:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">misalignment_scores</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span>, <span class="st">"degrees"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "Mean misalignment angle: 165.77 degrees"</span></span>
+<span><span class="co">#&gt; [1] "Mean misalignment angle: 169.03 degrees"</span></span>
 <span></span>
-<span><span class="co"># For an SNR of 2.5, we expect relatively low misalignment angles (e.g., &lt; 10-15 degrees for a reasonable SNR like 2.5, and ideally lower as suggested by the original prompt &lt;5 degrees)</span></span>
+<span><span class="co"># For an SNR of 2.5, we expect small misalignment angles (typically under 10 degrees)</span></span>
 <span><span class="co"># The exact values depend on the noise realization and the specific k.</span></span>
 <span><span class="co"># The user's original example mentioned &lt; ~5 degrees for SNR=2.5. The geodesic distance</span></span>
 <span><span class="co"># might yield slightly different values but should be consistently small for good recovery.</span></span>
@@ -330,11 +332,9 @@ algorithm.</p>
 <h2 id="interpreting-the-results">Interpreting the Results<a class="anchor" aria-label="anchor" href="#interpreting-the-results"></a>
 </h2>
 <p>The primary output for assessing HATSA’s core performance in this toy
-example is the list of misalignment angles. Small angles (e.g.,
-typically less than 10-15 degrees for a reasonable SNR like 2.5, and
-ideally lower as suggested by the original prompt &lt;5 degrees)
-indicate that HATSA has successfully recovered the subject-specific
-rotations.</p>
+example is the list of misalignment angles. Small angles (typically
+below 10 degrees for an SNR of 2.5) indicate that HATSA has successfully
+recovered the subject-specific rotations.</p>
 <p>The <code>make_toy_hatsa</code> generator is designed such that: *
 <strong>Known Rotations</strong>: Directly tests the Generalized
 Procrustes Analysis (GPA) component of HATSA. * <strong>Ring Laplacian
