@@ -145,8 +145,9 @@ hatsa_suggest <- function(data, task_data = NULL, verbose = TRUE) {
       cat("  result <- hatsa(data, components = ", suggestions$components,
           ", preset = '", suggestions$preset, "')\n", sep = "")
     } else {
-      cat("  result <- hatsa_task(data, task_data, method = '", 
-          suggestions$task_method, "')\n", sep = "")
+      cat("  result <- task_hatsa(subject_data_list = data,\n")
+      cat("                        task_data_list = task_data,\n")
+      cat("                        task_method = '", suggestions$task_method, "')\n", sep = "")
     }
   }
   

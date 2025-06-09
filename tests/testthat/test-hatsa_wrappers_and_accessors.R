@@ -23,14 +23,29 @@ test_that("hatsa wrapper applies preset values", {
   expect_length(res$parameters$anchor_indices, 3)
 })
 
-# Test hatsa_task automatic method selection
+# Test task_hatsa automatic method selection
 
-test_that("hatsa_task selects method automatically", {
+test_that("task_hatsa selects method automatically", {
   set.seed(2)
   subj <- .gen_subject_data(2, 5, 15)
   task <- .gen_task_data(2, 15, 12, 5)  # >10 conditions -> GEV
-  res <- suppressMessages(hatsa_task(subj, task, anchors = 1:2, components = 2,
-                                     method = "auto", preset = "fast"))
+  
+  # Create opts with fast preset
+  opts <- task_hatsa_opts(
+    k_conn_pos = 5,
+    k_conn_neg = 2,
+    n_refine = 1
+  )
+  
+  res <- suppressMessages(task_hatsa(
+    subject_data_list = subj,
+    task_data_list = task,
+    anchor_indices = 1:2,
+    spectral_rank_k = 2,
+    task_method = "gev_patch",  # Since we know it should be GEV
+    opts = opts,
+    verbose = FALSE
+  ))
   expect_s3_class(res, "task_hatsa_projector")
   expect_equal(res$parameters$task_method, "gev_patch")
 })

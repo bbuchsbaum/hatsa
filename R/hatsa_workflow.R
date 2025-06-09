@@ -29,13 +29,17 @@
 #' # Load task design matrices
 #' task_data <- load_task_designs()  # List of time × condition matrices
 #' 
-#' # Automatic method selection
-#' result <- hatsa_task(data, task_data, method = "auto")
+#' # Using lambda blend method
+#' result <- task_hatsa(subject_data_list = data,
+#'                      task_data_list = task_data,
+#'                      task_method = "lambda_blend")
 #' 
-#' # Or choose specific method
-#' result <- hatsa_task(data, task_data, 
-#'                      method = "blend",
-#'                      lambda_blend = 0.2)
+#' # Or use GEV method with custom options
+#' opts <- task_hatsa_opts(lambda_blend_value = 0.2)
+#' result <- task_hatsa(subject_data_list = data,
+#'                      task_data_list = task_data,
+#'                      task_method = "gev_patch",
+#'                      opts = opts)
 #' 
 #' # Analyze task-specific alignment
 #' task_metrics <- get_task_alignment_metrics(result)

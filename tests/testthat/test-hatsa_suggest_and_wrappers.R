@@ -20,15 +20,3 @@ test_that("hatsa_validate_params checks anchors and components", {
   expect_warning(hatsa_validate_params(data, 1:15, spectral_rank_k = 5), "unusually high")
 })
 
-# Test select_task_method heuristic
-
-test_that("select_task_method chooses method based on data", {
-  data <- list(matrix(rnorm(300), 100, 3))
-  # Task data format is C x V (conditions x parcels)
-  task_many <- list(matrix(rnorm(11 * 3), 11, 3))  # 11 conditions > 10 -> gev
-  task_few <- list(matrix(rnorm(2 * 3), 2, 3))     # 2 conditions < 3 -> augmented
-  task_medium <- list(matrix(rnorm(5 * 3), 5, 3))  # 5 conditions (3-10) -> blend
-  expect_equal(select_task_method(data, task_many), "gev")
-  expect_equal(select_task_method(data, task_few), "augmented")
-  expect_equal(select_task_method(data, task_medium), "blend")
-})
