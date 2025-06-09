@@ -304,7 +304,7 @@ predict.hatsa_projector <- function(object, newdata_list, ...) {
   T_anchor_final <- object$T_anchor_final
   k_conn_pos <- object$parameters$k_conn_pos
   k_conn_neg <- object$parameters$k_conn_neg
-  use_dtw_model <- object$parameters$use_dtw
+  use_dtw_model <- isTRUE(object$parameters$use_dtw)
 
   aligned_sketches_new_list <- vector("list", length(newdata_list))
   for (i in seq_along(newdata_list)) {

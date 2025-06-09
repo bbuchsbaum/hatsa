@@ -64,6 +64,7 @@ chunked_sparse_cor <- function(X_centered, col_sds, block_size = 50L) {
 compute_subject_connectivity_graph_sparse <- function(X_subject, parcel_names,
                                                       k_conn_pos, k_conn_neg,
                                                       use_dtw = FALSE) {
+  use_dtw <- isTRUE(use_dtw)
   V_p <- ncol(X_subject)
 
   if (length(parcel_names) != V_p) {
