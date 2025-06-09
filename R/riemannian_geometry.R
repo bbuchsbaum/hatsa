@@ -105,6 +105,7 @@ matrix_logm_spd <- function(S, regularize_epsilon = 1e-6) {
   if (!is.matrix(S) || !is.numeric(S) || !isSymmetric.matrix(S, tol = 1e-9)) {
     stop("Input S must be a numeric, symmetric matrix.")
   }
+  if (nrow(S) == 0) return(S)  # Empty matrix case
   S_reg <- .regularize_spd(S, regularize_epsilon)
   eig <- eigen(S_reg, symmetric = TRUE)
   vals <- pmax(eig$values, regularize_epsilon)
@@ -130,6 +131,7 @@ matrix_expm_spd <- function(S_symm) {
   if (!is.matrix(S_symm) || !is.numeric(S_symm) || !isSymmetric.matrix(S_symm, tol = 1e-9)) {
     stop("Input S_symm must be a numeric, symmetric matrix.")
   }
+  if (nrow(S_symm) == 0) return(S_symm)  # Empty matrix case
   eig <- eigen(S_symm, symmetric = TRUE)
   exp_S <- eig$vectors %*% diag(exp(eig$values)) %*% t(eig$vectors)
   exp_S_symm <- (exp_S + t(exp_S)) / 2
@@ -156,6 +158,7 @@ matrix_sqrt_spd <- function(S, regularize_epsilon = 1e-6) {
   if (!is.matrix(S) || !is.numeric(S) || !isSymmetric.matrix(S, tol = 1e-9)) {
     stop("Input S must be a numeric, symmetric matrix.")
   }
+  if (nrow(S) == 0) return(S)  # Empty matrix case
   S_reg <- .regularize_spd(S, regularize_epsilon)
   eig <- eigen(S_reg, symmetric = TRUE)
   vals <- pmax(eig$values, regularize_epsilon)

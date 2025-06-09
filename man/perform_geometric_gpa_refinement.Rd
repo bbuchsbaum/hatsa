@@ -65,4 +65,11 @@ and the template. The Riemannian mode aims to make the template's orientation
 consistent with the Frechet mean of subject rotations, which implicitly relates
 to minimizing intrinsic SO(k) geodesic distances for the rotations' central tendency.
 }
+\details{
+Matrices in `A_originals_list` are checked to be numeric and to have
+dimensions `m_rows x k` before the initial template is computed.
+Invalid matrices are ignored with their indices reported in a warning.
+If all matrices are invalid, the function returns identity rotations and an
+`NA` template rather than stopping with an error.
+}
 \keyword{internal}

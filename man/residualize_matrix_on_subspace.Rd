@@ -8,12 +8,12 @@ residualize_matrix_on_subspace(matrix_to_residualize, subspace_basis_matrix)
 }
 \arguments{
 \item{matrix_to_residualize}{A numeric matrix (e.g., `C x k`) whose rows
-are to be residualized. Sparse \code{Matrix} inputs are handled without full
+are to be residualized. Sparse `Matrix` inputs are handled without full
 densification. A warning is issued if the matrix is very large (`C*k > 1e7`).}
 
 \item{subspace_basis_matrix}{A numeric matrix (e.g., `m x k`) whose rows
 span the subspace to project out. Sparse matrices are accepted and processed
-with \code{Matrix} linear algebra.}
+with `Matrix` linear algebra.}
 }
 \value{
 A numeric matrix with the same dimensions as `matrix_to_residualize`,
@@ -24,8 +24,8 @@ Residualizes the rows of `matrix_to_residualize` with respect to
   the row space of `subspace_basis_matrix`. This is equivalent to projecting
   each column of `t(matrix_to_residualize)` onto the column space of
   `t(subspace_basis_matrix)` and taking the residuals. Sparse inputs are
-  handled with \code{Matrix} routines and the returned matrix is dense.
-
+  processed with `Matrix` routines and the result is returned as a dense
+  matrix.
 }
 \examples{
 # Z_i: 3 conditions, 5-dimensional spectral space (3x5)

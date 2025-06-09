@@ -216,6 +216,7 @@ hatsa_projector <- function(hatsa_core_results, parameters) {
 #'
 #' @param x A \code{hatsa_projector} object.
 #' @param ... Additional arguments passed to print.
+#' @return Invisibly returns the input object \code{x}.
 #' @export
 print.hatsa_projector <- function(x, ...) {
   cat("HATSA Projector Object\n")
@@ -716,6 +717,7 @@ summary.hatsa_projector <- function(object, ...,
 #'
 #' @param x A \code{summary.hatsa_projector} object.
 #' @param ... Additional arguments (unused).
+#' @return Invisibly returns the input object \code{x}.
 #' @export
 print.summary.hatsa_projector <- function(x, ...) {
   cat("HATSA Projector Summary\n")

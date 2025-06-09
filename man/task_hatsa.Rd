@@ -16,38 +16,7 @@ task_hatsa(
   ...
 )
 
-run_task_hatsa(
-  subject_data_list,
-  anchor_indices,
-  spectral_rank_k,
-  task_data_list = NULL,
-  task_method = c("lambda_blend", "gev_patch", "core_hatsa"),
-  lambda_blend_value = 0.15,
-  k_gev_dims = 10,
-  row_augmentation = TRUE,
-  residualize_condition_anchors = FALSE,
-  omega_weights = NULL,
-  omega_mode = c("fixed", "adaptive"),
-  reliability_scores_list = NULL,
-  scale_omega_trace = TRUE,
-  alpha_laplacian = 0.93,
-  degree_type_laplacian = c("abs", "positive", "signed"),
-  k_conn_pos = 10,
-  k_conn_neg = 10,
-  k_conn_task_pos = 10,
-  k_conn_task_neg = 10,
-  similarity_method_task = "pearson",
-  W_task_helper_func = NULL,
-  n_refine = 5,
-  check_redundancy = TRUE,
-  redundancy_threshold = 0.45,
-  residualize_k_conn_proj = 64,
-  residualize_k_conn_labels = 10,
-  gev_lambda_max = 0.8,
-  gev_epsilon_reg = 1e-06,
-  parcel_names = NULL,
-  verbose = TRUE
-)
+run_task_hatsa(...)
 }
 \arguments{
 \item{subject_data_list}{List where each element is a numeric matrix (`T_i x V_p`)
@@ -64,7 +33,6 @@ processing. Default is NULL.}
 
 \item{task_method}{Character string: `"lambda_blend"`, `"gev_patch"`, or `"core_hatsa"`. 
 Default: `"lambda_blend"`.}
-
 
 \item{opts}{List of advanced options created by `task_hatsa_opts()`.}
 

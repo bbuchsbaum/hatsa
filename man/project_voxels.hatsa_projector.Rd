@@ -35,9 +35,10 @@ Passed to \code{\link{compute_voxel_basis_nystrom}}.}
 Passed to \code{\link{compute_voxel_basis_nystrom}}.}
 
 \item{W_vox_parc}{Optional pre-computed voxel-to-parcel affinity matrix
-  (V_v x V_p). If supplied, this matrix is reused for all subjects and the
-  internal k-NN search is skipped. If \code{NULL}, the matrix is computed once
-  using \code{n_nearest_parcels} and \code{kernel_sigma} and then reused.}
+(V_v x V_p). If provided, this matrix is reused for all subjects and the
+internal k-NN search and Gaussian kernel calculation are skipped. If
+\code{NULL} (default), the affinity matrix is computed once using
+\code{n_nearest_parcels} and \code{kernel_sigma} and then reused.}
 
 \item{data_type}{Character string, either "timeseries" (default) or
 "coefficients". If "timeseries", the projection involves scaling by `1/T_i`

@@ -30,10 +30,9 @@ A sparse symmetric `Matrix::dgCMatrix` of size `V_p x V_p`
 }
 \description{
 Calculates the sparse connectivity graph for a single subject.
-`X_subject` must contain at least two rows (time points).
 Steps:
-1. Compute pairwise Pearson correlations using a memory-efficient cross-product
-   approach that avoids creating a dense `V_p \times V_p` matrix.
+1. Compute pairwise Pearson correlations using a memory-efficient
+   cross-product approach that avoids constructing a dense `V_p` \times `V_p` matrix.
 2. Identify and mask zero-variance parcels.
 3. Sparsify: For each parcel, identify indices of `k_conn_pos` strongest
    positive and `k_conn_neg` strongest negative correlations, using partial sort.
@@ -42,5 +41,8 @@ Steps:
 4. Symmetrize `W_dir` using `W_sym_raw = (W_dir + t(W_dir)) / 2`, then `drop0`.
 5. Ensure strict symmetry for z-scoring: `W_symmetric = Matrix::forceSymmetric(W_sym_raw, uplo="U")`.
 6. Z-score non-zero edge weights in `W_symmetric` (assumes `zscore_nonzero_sparse` is stable).
+}
+\details{
+`X_subject` must contain at least two rows (time points).
 }
 \keyword{internal}

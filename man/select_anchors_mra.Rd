@@ -24,7 +24,8 @@ select_anchors_mra(
 \item{U_original_list_pilot}{A list of original (unaligned) sketch matrices
 (V_p x k) for a set of pilot subjects. These are used to evaluate candidate anchors.}
 
-\item{spectral_rank_k}{Integer, the spectral rank k used to generate `U_original_list_pilot`.}
+\item{spectral_rank_k}{Integer, the spectral rank `k` used to generate
+`U_original_list_pilot`.}
 
 \item{m_target}{Integer, the desired number of anchors to select.}
 
@@ -54,7 +55,8 @@ extensions (e.g., pre-filtering candidates).}
 `hatsa::riemannian_dispersion_spd` (e.g., `spd_metric`, `use_geometric_median`).}
 
 \item{min_anchors_for_metrics}{Integer. Minimum number of selected anchors required before
-kappa and dispersion metrics are considered stable enough to compute. Default is `spectral_rank_k`.}
+kappa and dispersion metrics are considered stable enough to compute. Default is
+`spectral_rank_k`.}
 
 \item{verbose}{Logical. If TRUE, print progress messages. Default: TRUE.}
 }
@@ -67,6 +69,15 @@ the stability of the mean anchor representation (via condition number) and
 the dispersion of subject-specific covariance matrices derived from these anchors
 on the SPD manifold.
 }
+\section{Methodological Details}{
+
+MRA-Select greedily optimizes a composite score balancing the
+condition number of the mean anchor matrix with the Riemannian
+dispersion of subject covariance matrices on the SPD manifold.
+Candidate anchors that maximize this score are iteratively added
+until \code{m_target} anchors are selected.
+}
+
 \examples{
 # Conceptual example (requires U_original_list_pilot from actual or synthetic data)
 # N_pilot <- 5

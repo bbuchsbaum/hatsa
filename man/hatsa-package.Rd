@@ -64,6 +64,14 @@ The algorithm follows three main stages:
     }
 }
 
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://bbuchsbaum.github.io/hatsa/}
+  \item Report bugs at \url{https://github.com/bbuchsbaum/hatsa/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Brad Buchsbaum \email{brad.buchsbaum@gmail.com}
 

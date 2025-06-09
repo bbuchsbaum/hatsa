@@ -35,9 +35,10 @@ negative connections to retain per parcel.}
 
 \item{use_dtw}{Logical, defaults to `FALSE`. If `TRUE` (not yet fully implemented),
 Dynamic Time Warping would be considered in graph construction similarity.}
-\item{n_cores}{Integer number of CPU cores to use. If \code{>1} and the
-platform supports forking, computations are parallelized via
-\code{parallel::mclapply}.}
+
+\item{n_cores}{Integer number of CPU cores to use. If `> 1` and the platform
+supports forking (i.e., non-Windows), per-subject computations are
+parallelized via \code{parallel::mclapply}. Defaults to 1 (sequential).}
 }
 \value{
 A `hatsa_projector` object. This S3 object inherits from
@@ -106,8 +107,7 @@ if (requireNamespace("Matrix", quietly = TRUE) &&
       spectral_rank_k = k_spectral,
       k_conn_pos = k_pos,
       k_conn_neg = k_neg,
-      n_refine = n_iter_refine,
-      n_cores = 1L
+      n_refine = n_iter_refine
     ),
     error = function(e) {
       message("Example run failed: ", e$message)

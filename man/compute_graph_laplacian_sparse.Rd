@@ -8,8 +8,8 @@ compute_graph_laplacian_sparse(W_sparse, alpha = 0.93, degree_type = "abs")
 }
 \arguments{
 \item{W_sparse}{A sparse, symmetric adjacency matrix (`Matrix::dgCMatrix`, `V_p x V_p`).
-Symmetry is checked with \code{Matrix::isSymmetric()} (tolerance \code{1e-8}) and the
-function errors if the matrix is not symmetric.}
+Symmetry is verified using \code{Matrix::isSymmetric()} (tolerance \code{1e-8});
+the function stops with an error if the matrix is not symmetric.}
 
 \item{alpha}{Numeric, the laziness parameter. Default is 0.93.
 Will be clamped to `[epsilon, 1]` range if outside `(0,1]`.}

@@ -11,6 +11,9 @@
 
 \item{...}{Additional arguments passed to print.}
 }
+\value{
+Invisibly returns the input object \code{x}.
+}
 \description{
 Provides a concise summary of the hatsa_projector object.
 }

@@ -196,8 +196,8 @@ select_task_method <- function(data, task_data) {
   
   if (n_conditions > 10) {
     "gev"  # Many conditions benefit from GEV
-  } else if (n_timepoints < 200) {
-    "augmented"  # Short runs benefit from augmentation
+  } else if (n_conditions < 3) {
+    "augmented"  # Few conditions benefit from augmentation
   } else {
     "blend"  # Default to blend for typical data
   }

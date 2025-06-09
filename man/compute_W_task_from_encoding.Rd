@@ -19,10 +19,10 @@ Each row represents the encoding weight profile for a parcel.}
 
 \item{parcel_names}{A character vector of length `V_p` specifying parcel names.}
 
-\item{k_conn_task_pos}{Integer, number of strongest positive connections to
+\item{k_conn_task_pos}{Non-negative integer. Number of strongest positive connections to
 retain per parcel during sparsification.}
 
-\item{k_conn_task_neg}{Integer, number of strongest negative connections to
+\item{k_conn_task_neg}{Non-negative integer. Number of strongest negative connections to
 retain per parcel during sparsification.}
 
 \item{similarity_method}{Character string or function. Specifies the method to

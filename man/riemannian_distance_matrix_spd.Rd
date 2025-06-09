@@ -17,7 +17,8 @@ riemannian_distance_matrix_spd(object, ...)
 )
 }
 \arguments{
-\item{object}{A `hatsa_projector` or `task_hatsa_projector` object.}
+\item{object}{A `hatsa_projector` or `task_hatsa_projector` object,
+or directly a list of SPD matrices.}
 
 \item{...}{Additional arguments passed to `riemannian_distance_spd` or
 to `get_spd_representations` if used.}

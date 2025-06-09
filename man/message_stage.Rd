@@ -4,15 +4,17 @@
 \alias{message_stage}
 \title{Helper for status messages}
 \usage{
-message_stage(message_text, interactive_only = FALSE)
+message_stage(message_text, verbose = TRUE, interactive_only = FALSE)
 }
 \arguments{
-
 \item{message_text}{Text message to display.}
+
 \item{verbose}{Whether to print the message.}
-\item{interactive_only}{Print only in interactive mode.}
+
+\item{interactive_only}{Whether to print only in interactive mode.}
 }
 \description{
-Prints a timestamped message when \code{verbose} is TRUE. If \code{interactive_only} is TRUE, the message is emitted only for interactive sessions.
+Prints a timestamped stage message when \code{verbose} is TRUE. If
+\code{interactive_only} is TRUE the message is printed only during interactive sessions.
 }
 \keyword{internal}

@@ -15,14 +15,15 @@ project_features_to_spectral_space(
 \item{feature_matrix}{A numeric matrix representing features. It can be in
 `V_p x C` format (parcels x features/conditions) or `C x V_p` format.
 The function will attempt to orient it correctly based on `U_basis`.
-Sparse `Matrix` inputs are handled with sparse-aware linear algebra and only
-small intermediate matrices are densified. Very large sparse inputs
-(`prod(dim(.)) > 1e7`) result in an error.}
+If `feature_matrix` is a sparse `Matrix`, operations use sparse methods
+when possible (coercion occurs only for small intermediate matrices).
+Very large sparse inputs (`prod(dim(.)) > 1e7`) trigger an error to avoid
+accidental densification.}
 
 \item{U_basis}{A numeric matrix representing the spectral basis, typically with
 dimensions `V_p x k_dims_basis` (parcels x basis dimensions).
-Sparse `U_basis` inputs are handled similarly and extremely large sparse bases
-trigger an error to avoid densification.}
+Sparse `U_basis` inputs are handled with `Matrix` methods. Extremely large
+sparse bases also trigger an error to prevent densification.}
 
 \item{tol_orthonormal}{A numeric tolerance to check for orthonormality of `U_basis`.
 `max(abs(crossprod(U_basis) - I)) / k_dims_basis` is compared against this tolerance.
@@ -44,7 +45,8 @@ A numeric (dense) matrix containing the projected features.
 Projects a feature matrix onto a given spectral basis. Handles potential
   transposition of the feature matrix and uses the appropriate orthogonal projection
   formula based on whether the basis is orthonormal. Sparse inputs are processed
-  with \code{Matrix} methods and the result is returned as a dense matrix.
+  with `Matrix` methods so that large matrices need not be fully densified. The
+  returned matrix is always dense.
 }
 \examples{
 V_p <- 10

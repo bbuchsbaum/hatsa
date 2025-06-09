@@ -52,8 +52,9 @@ e.g., `list(k_conn_pos = 10, k_conn_neg = 10, zscore_type = "abs", ...)`.
 Needed for `type = "fc_conn"`.}
 }
 \value{
-A list of SPD matrices. Each element corresponds to a subject. Returns NULL
-  for a subject if its SPD matrix cannot be computed.
+If `subject_idx` has length 1, a single SPD matrix is returned.
+  Otherwise a list of matrices is returned with `NULL` for subjects whose SPD
+  representation could not be computed.
 }
 \description{
 Extracts or computes various types of Symmetric Positive-Definite (SPD) matrix

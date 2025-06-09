@@ -8,18 +8,22 @@ chunked_sparse_cor(X_centered, col_sds, block_size = 50L)
 }
 \arguments{
 \item{X_centered}{A centered numeric matrix (`T_i` x `V_p`).}
+
 \item{col_sds}{Vector of column standard deviations for `X_centered`.}
+
 \item{block_size}{Number of columns per block. Defaults to 50.}
 }
 \value{
-A list of blocks where each element contains:
-\itemize{
-  \item `indices`: column indices for the block.
-  \item `corr`: correlation matrix (`length(indices)` x `V_p`).
-}
+A list where each element contains:
+  \itemize{
+    \item `indices`: integer vector of column indices covered by the block.
+    \item `corr`: matrix of correlations (`length(indices)` x `V_p`).
+  }
 }
 \description{
-Helper used by \code{compute_subject_connectivity_graph_sparse} to compute
-Pearson correlations without allocating a full dense matrix.
+Helper that computes Pearson correlations between all columns of
+`X_centered` in blocks to avoid allocating the full `V_p \times V_p`
+dense matrix. Each block contains `block_size` columns and returns a list of
+correlation submatrices.
 }
 \keyword{internal}

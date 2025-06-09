@@ -9,7 +9,8 @@ summary.hatsa_projector(
   ...,
   compute_riemannian_dispersion = FALSE,
   riemannian_dispersion_type = "cov_coeffs",
-  riemannian_dispersion_options = list()
+  riemannian_dispersion_options = list(),
+  recompute_R_bar = FALSE
 )
 }
 \arguments{
@@ -25,6 +26,9 @@ for dispersion (e.g., "cov_coeffs"). Passed to `riemannian_dispersion_spd`.}
 
 \item{riemannian_dispersion_options}{A list of additional arguments passed to
 `riemannian_dispersion_spd` (e.g., for `use_geometric_median`, `spd_regularize_epsilon`, `verbose`).}
+
+\item{recompute_R_bar}{Logical; if TRUE the Fr\u00e9chet mean of the rotations
+is recomputed even if a cached value is present. Default FALSE.}
 }
 \value{
 A list object of class \code{summary.hatsa_projector} containing

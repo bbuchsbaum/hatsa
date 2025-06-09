@@ -48,6 +48,15 @@ Finds the optimal rotation matrix `R` that aligns a source matrix `A_source`
   to a target matrix `T_target`, minimizing `|| Omega (A_source R - T_target) ||_F^2`,
   where `Omega` is a diagonal weighting matrix.
 }
+\details{
+Internally computes the weighted cross-product using
+  `crossprod(A_source, T_target * omega_diag_vector)` to avoid creating
+  separate weighted matrices for `A_source` and `T_target`.
+
+When the spectral dimension `k` is 1, the SVD-based determinant correction is
+unnecessary. In this case the rotation is simply the sign of the scalar
+cross-product `M`, i.e. `R <- matrix(sign(M), 1, 1)`.
+}
 \examples{
 N_parcels <- 5
 N_tasks <- 3

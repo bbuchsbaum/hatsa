@@ -30,10 +30,19 @@ One of:
 \value{
 A named list containing reconstruction error metrics. The structure depends
   on the `type` requested, typically including `mean_error` and `per_subject_error`.
-  For `type="non_anchors"`, it may also include `per_parcel_error` if implemented.
+  For `type="non_anchors"`, it also includes `per_parcel_error`.
 }
 \description{
 Computes various types of reconstruction errors based on a fitted HATSA model.
 This helps quantify alignment quality, sanity check model components, or assess
 how well non-anchor information is captured.
+}
+\examples{
+# Assuming `fit_obj` is a hatsa_projector from `run_hatsa_core()`
+# Anchor reconstruction error
+# reconstruction_error(fit_obj, type = "anchors")
+# Sanity check using all parcels
+# reconstruction_error(fit_obj, type = "all_parcels")
+# Predict non-anchor parcels from anchors
+# reconstruction_error(fit_obj, type = "non_anchors")
 }

@@ -3,6 +3,7 @@
 \name{riemannian_dispersion_spd}
 \alias{riemannian_dispersion_spd}
 \alias{riemannian_dispersion_spd.hatsa_projector}
+\alias{riemannian_dispersion_spd.list}
 \title{Compute Riemannian Dispersion of SPD Matrices on the Manifold}
 \usage{
 riemannian_dispersion_spd(object, ...)
@@ -13,6 +14,14 @@ riemannian_dispersion_spd(object, ...)
   subject_data_list = NULL,
   use_geometric_median = FALSE,
   k_conn_params = NULL,
+  spd_regularize_epsilon = 1e-06,
+  verbose = FALSE,
+  ...
+)
+
+\method{riemannian_dispersion_spd}{list}(
+  object,
+  use_geometric_median = FALSE,
   spd_regularize_epsilon = 1e-06,
   verbose = FALSE,
   ...

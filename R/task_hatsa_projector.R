@@ -181,6 +181,7 @@ task_hatsa_projector <- function(task_hatsa_results) {
 #'
 #' @param x A `task_hatsa_projector` object.
 #' @param ... Additional arguments passed to print.
+#' @return Invisibly returns the input object \code{x}.
 #' @export
 print.task_hatsa_projector <- function(x, ...) {
   # Call the print method for the parent class first
@@ -286,6 +287,7 @@ summary.task_hatsa_projector <- function(object, ...) {
 #'
 #' @param x A `summary.task_hatsa_projector` object.
 #' @param ... Additional arguments (unused).
+#' @return Invisibly returns the input object \code{x}.
 #' @export
 print.summary.task_hatsa_projector <- function(x, ...) {
   # Call print method for parent summary class

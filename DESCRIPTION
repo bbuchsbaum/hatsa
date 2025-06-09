@@ -35,3 +35,4 @@ Suggests:
     styler
 Config/testthat/edition: 3 
 URL: https://bbuchsbaum.github.io/hatsa/
+BugReports: https://github.com/bbuchsbaum/hatsa/issues
