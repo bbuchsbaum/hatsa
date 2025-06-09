@@ -2,6 +2,8 @@
 
 **R Package for advanced functional connectivity alignment with task-informed features**
 
+[![R-CMD-check](https://github.com/bbuchsbaum/hatsa/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/bbuchsbaum/hatsa/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/bbuchsbaum/hatsa/branch/main/graph/badge.svg)](https://app.codecov.io/gh/bbuchsbaum/hatsa?branch=main)
 [![Status](https://img.shields.io/badge/Status-95%25%20Complete-brightgreen)](./HATSA_PROJECT_STATUS.md)
 [![Critical Path](https://img.shields.io/badge/Critical%20Path-All%20Implemented-brightgreen)](./HATSA_PROJECT_STATUS.md#critical-path-to-completion)
 
@@ -10,6 +12,24 @@
 ## 🎯 **Current Status**
 
 The HATSA package implements advanced hyperalignment methods for functional neuroimaging data, with **all major components and critical path functions implemented**.
+
+## 🚀 **Quick Start**
+
+```r
+# Install the package
+devtools::install_github("bbuchsbaum/hatsa")
+library(hatsa)
+
+# Basic usage - automatic everything!
+result <- hatsa(subject_data)
+
+# Get aligned data and check quality
+aligned <- get_aligned_data(result)
+hatsa_summary(result)
+
+# Task-informed variant
+result <- hatsa_task(subject_data, task_data, method = "auto")
+```
 
 **📊 Progress**: ~95% complete
 **📋 Current Focus**: Package polish and optimization tasks ([status details](./HATSA_PROJECT_STATUS.md#immediate-priorities-week-1))

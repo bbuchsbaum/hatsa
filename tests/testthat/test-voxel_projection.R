@@ -273,13 +273,13 @@ test_that("project_voxels works with precomputed W_vox_parc", {
   med_dist <- median(first_dists, na.rm = TRUE)
   sigma_eff <- if (is.finite(med_dist) && med_dist > 1e-6) med_dist / sqrt(2) else 1.0
   sims <- exp(-nn_res$nn.dists / (2 * sigma_eff^2))
-  W_pre <- Matrix::as(Matrix::sparseMatrix(
+  W_pre <- as(Matrix::sparseMatrix(
     i = rep(1:nrow(voxel_coords_proj), each = 3),
     j = as.vector(t(nn_res$nn.idx)),
     x = as.vector(t(sims)),
     dims = c(nrow(voxel_coords_proj), V_p_fit),
-    repr = "T", giveCsparse = FALSE
-  ), "dgCMatrix")
+    repr = "T"
+  ), "CsparseMatrix")
 
   res_default <- suppressMessages(project_voxels(
     object = hatsa_fitted_obj,
@@ -310,4 +310,6 @@ test_that("project_voxels works with precomputed W_vox_parc", {
 #   This is complex to set up perfectly due to U_orig_i differing per subject.
 # - A simpler consistency: if R_i is identity for all subjects (e.g. if T_anchor_final was based on subject 1 and U_orig_1)
 #   then aligned and unaligned coefficients should be similar for subject 1.
+
+})
 

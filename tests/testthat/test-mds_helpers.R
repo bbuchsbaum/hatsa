@@ -22,20 +22,36 @@ test_that("run_cmdscale_safe returns cmdscale output and handles errors", {
 
 test_that("compute_mds_distance_matrix delegates to generic and handles errors", {
   dummy_obj <- structure(list(), class = "dummy_proj")
+  
+  # Define and register the S3 method properly
   riemannian_distance_matrix_spd.dummy_proj <- function(object, type, verbose = FALSE) {
     matrix(c(0, 1, 1, 0), nrow = 2)
   }
+  # Register the method in the current environment
+  assign("riemannian_distance_matrix_spd.dummy_proj", 
+         riemannian_distance_matrix_spd.dummy_proj, 
+         envir = .GlobalEnv)
+  
   res <- compute_mds_distance_matrix(dummy_obj, "cov_coeffs", verbose = FALSE)
   expect_true(is.matrix(res))
   expect_equal(res[1, 2], 1)
 
+  # Test error handling by redefining the method to fail
   riemannian_distance_matrix_spd.dummy_proj <- function(object, type, verbose = FALSE) {
     stop("fail")
   }
+  assign("riemannian_distance_matrix_spd.dummy_proj", 
+         riemannian_distance_matrix_spd.dummy_proj, 
+         envir = .GlobalEnv)
+  
   expect_warning(res_err <- compute_mds_distance_matrix(dummy_obj, "cov_coeffs"),
                  "distance matrix computation failed")
   expect_null(res_err)
-  rm(riemannian_distance_matrix_spd.dummy_proj, envir = .GlobalEnv)
+  
+  # Clean up
+  if (exists("riemannian_distance_matrix_spd.dummy_proj", envir = .GlobalEnv)) {
+    rm(riemannian_distance_matrix_spd.dummy_proj, envir = .GlobalEnv)
+  }
 })
 
 

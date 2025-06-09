@@ -139,14 +139,13 @@ compute_voxel_basis_nystrom <- function(voxel_coords, parcel_coords,
                               j = as.vector(t(nn_results$nn.idx)),
                               x = affinities_flat,
                               dims = c(V_v, V_p),
-                              repr = "T", # Specify triplet representation
-                              giveCsparse = FALSE) # Do not convert to Csparse yet
+                              repr = "T") # Specify triplet representation
 
     # Convert to CsparseMatrix (dgCMatrix). This step automatically sums the 'x' values
     # for any duplicate (i,j) pairs present in the triplet form.
     # This handles cases where a voxel's k-NN includes the same parcel index multiple times,
     # or if multiple (voxel_idx, parcel_idx) raw pairs exist before aggregation.
-    W_vox_parc <- as(W_T, "dgCMatrix")
+    W_vox_parc <- as(W_T, "CsparseMatrix")
 
   } else {
     message_stage("Using provided W_vox_parc matrix.", interactive_only=TRUE)
@@ -571,8 +570,8 @@ project_voxels.hatsa_projector <- function(object,
                                 j = as.vector(t(nn_results$nn.idx)),
                                 x = affinities_flat,
                                 dims = c(V_v, object$parameters$V_p),
-                                repr = "T", giveCsparse = FALSE)
-    W_vox_parc <- as(W_T, "dgCMatrix")
+                                repr = "T")
+    W_vox_parc <- as(W_T, "CsparseMatrix")
   } else {
     if (!inherits(W_vox_parc, "dgCMatrix")) {
       W_vox_parc <- as(W_vox_parc, "dgCMatrix")

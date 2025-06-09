@@ -30,6 +30,8 @@ Suggests:
     vegan,
     MASS,
     shapes,
-    ggrepel
+    ggrepel,
+    covr,
+    styler
 Config/testthat/edition: 3 
-
+URL: https://bbuchsbaum.github.io/hatsa/

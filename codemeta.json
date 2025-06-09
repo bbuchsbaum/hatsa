@@ -1,0 +1,192 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "identifier": "hatsa",
+  "name": "hatsa",
+  "version": "0.1.0",
+  "description": "Implements advanced hyperalignment methods for functional neuroimaging data with task-informed features. Provides sparse graph-based alignment of functional connectivity patterns across subjects using spectral decomposition and Procrustes alignment. Includes extensions for task-informed alignment, Riemannian geometry operations on SPD manifolds, and voxel-level projection via Nyström extension.",
+  "applicationCategory": "Neuroscience",
+  "keywords": [
+    "hyperalignment",
+    "functional-connectivity",
+    "neuroimaging", 
+    "spectral-analysis",
+    "procrustes-alignment",
+    "graph-theory",
+    "riemannian-geometry",
+    "task-informed",
+    "fmri",
+    "nyström-extension",
+    "spd-manifolds",
+    "R-package"
+  ],
+  "homepage": "https://bbuchsbaum.github.io/hatsa/",
+  "codeRepository": "https://github.com/bbuchsbaum/hatsa",
+  "issueTracker": "https://github.com/bbuchsbaum/hatsa/issues",
+  "license": "https://spdx.org/licenses/MIT",
+  "programmingLanguage": {
+    "@type": "ComputerLanguage",
+    "name": "R",
+    "url": "https://r-project.org"
+  },
+  "runtimePlatform": "R",
+  "targetProduct": {
+    "@type": "CommandLineApplication",
+    "operatingSystem": [
+      "Windows",
+      "macOS", 
+      "Linux"
+    ]
+  },
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Brad",
+      "familyName": "Buchsbaum",
+      "email": "brad.buchsbaum@gmail.com",
+      "@id": "https://orcid.org/0000-0001-9477-2156"
+    }
+  ],
+  "maintainer": [
+    {
+      "@type": "Person", 
+      "givenName": "Brad",
+      "familyName": "Buchsbaum",
+      "email": "brad.buchsbaum@gmail.com",
+      "@id": "https://orcid.org/0000-0001-9477-2156"
+    }
+  ],
+  "softwareRequirements": [
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "R",
+      "name": "R",
+      "version": ">= 4.0.0"
+    },
+    {
+      "@type": "SoftwareApplication", 
+      "identifier": "Matrix",
+      "name": "Matrix",
+      "provider": {
+        "@type": "Organization",
+        "name": "CRAN"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "RANN", 
+      "name": "RANN",
+      "provider": {
+        "@type": "Organization",
+        "name": "CRAN"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "multivarious",
+      "name": "multivarious", 
+      "provider": {
+        "@type": "Organization",
+        "name": "CRAN"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "expm",
+      "name": "expm",
+      "provider": {
+        "@type": "Organization", 
+        "name": "CRAN"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "PRIMME",
+      "name": "PRIMME",
+      "provider": {
+        "@type": "Organization",
+        "name": "CRAN"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "future.apply",
+      "name": "future.apply",
+      "provider": {
+        "@type": "Organization",
+        "name": "CRAN"
+      }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "ggplot2", 
+      "name": "ggplot2",
+      "provider": {
+        "@type": "Organization",
+        "name": "CRAN"
+      }
+    }
+  ],
+  "softwareSuggestions": [
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "testthat",
+      "name": "testthat",
+      "version": ">= 3.0.0"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "knitr",
+      "name": "knitr"
+    },
+    {
+      "@type": "SoftwareApplication", 
+      "identifier": "rmarkdown",
+      "name": "rmarkdown"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "vegan",
+      "name": "vegan"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "MASS",
+      "name": "MASS"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "shapes", 
+      "name": "shapes"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "identifier": "ggrepel",
+      "name": "ggrepel"
+    }
+  ],
+  "readme": "https://github.com/bbuchsbaum/hatsa/blob/main/README.md",
+  "releaseNotes": "https://github.com/bbuchsbaum/hatsa/blob/main/HATSA_PROJECT_STATUS.md",
+  "developmentStatus": "active",
+  "embargoDate": null,
+  "funding": null,
+  "isPartOf": null,
+  "referencePublication": null,
+  "relatedLink": [
+    "https://bbuchsbaum.github.io/hatsa/"
+  ],
+  "buildInstructions": "https://github.com/bbuchsbaum/hatsa#development-setup",
+  "contIntegration": "https://github.com/bbuchsbaum/hatsa/actions",
+  "downloadUrl": "https://github.com/bbuchsbaum/hatsa/archive/refs/heads/main.zip",
+  "installUrl": "https://github.com/bbuchsbaum/hatsa",
+  "hasSourceCode": "https://github.com/bbuchsbaum/hatsa",
+  "dateCreated": "2024-01-01",
+  "dateModified": "2025-01-28",
+  "datePublished": null,
+  "copyrightHolder": {
+    "@type": "Person",
+    "givenName": "Brad", 
+    "familyName": "Buchsbaum"
+  },
+  "copyrightYear": "2024"
+} 

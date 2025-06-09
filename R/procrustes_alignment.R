@@ -9,7 +9,7 @@
 #' @return Rotation matrix with `det(R) = 1`.
 #' @keywords internal
 procrustes_rotation_basic <- function(A, T) {
-  M <- crossprod(A, T)
+  M <- crossprod(A, T)  # M = A^T * T
   sv <- svd(M)
   U <- sv$u
   V <- sv$v
@@ -19,16 +19,29 @@ procrustes_rotation_basic <- function(A, T) {
     return(matrix(sign(M), 1L, 1L))
   }
 
-  # Use determinant of V and U for stable orientation check
-  sign_det <- sign(det(V) * det(U))
-  if (is.na(sign_det) || abs(sign_det) < .Machine$double.eps) sign_det <- 1
-
-  V_corr <- V
-  V_corr[, ncol(V_corr)] <- V_corr[, ncol(V_corr)] * sign_det
-
-  R <- V_corr %*% t(U)
-
+  # Standard Procrustes solution: R = U %*% t(V)
+  # But we need to ensure det(R) = 1 for proper rotation
+  
+  # Use determinant of V and U for numerically stable orientation check
+  det_U <- det(U)
+  det_V <- det(V)
+  sign_det <- sign(det_U * det_V)
+  
+  # Handle numerical edge cases
+  if (is.na(sign_det) || abs(sign_det) < .Machine$double.eps) {
+    sign_det <- 1
+  }
+  
+  # Correct orientation by flipping last column of U if needed
+  if (sign_det < 0) {
+    U[, ncol(U)] <- -U[, ncol(U)]
+  }
+  
+  # Compute final rotation
+  R <- U %*% t(V)
+  
   # Re-orthogonalize for numerical stability
+  # This ensures R is exactly orthogonal despite floating-point errors
   sv_R <- svd(R)
   R_final <- sv_R$u %*% t(sv_R$v)
 

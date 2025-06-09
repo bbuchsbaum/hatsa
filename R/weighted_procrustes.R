@@ -183,15 +183,33 @@ solve_procrustes_rotation_weighted <- function(A_source, T_target,
   
   svd_M <- svd(M)
   
-  # Fast reflection fix using determinant sign (Fix 2-C)
-  # Calculate sign of determinant of R = V U^T = sign(det(V)*det(U))
-  # Note: svd()$u and svd()$v determinants are +/- 1
-  sign_det <- sign(det(svd_M$v) * det(svd_M$u)) 
-  # Flip the last column of V if det is -1 to ensure det(R) = +1
-  V_corrected <- svd_M$v
-  V_corrected[, k_dims] <- V_corrected[, k_dims] * sign_det 
+  # Standard Procrustes solution with proper determinant correction
+  # R = U %*% t(V) ensures A_source %*% R ≈ T_target
+  U <- svd_M$u
+  V <- svd_M$v
   
-  R <- V_corrected %*% t(svd_M$u)
+  # Use determinant of V and U for numerically stable orientation check
+  det_U <- det(U)
+  det_V <- det(V)
+  sign_det <- sign(det_U * det_V)
+  
+  # Handle numerical edge cases
+  if (is.na(sign_det) || abs(sign_det) < .Machine$double.eps) {
+    sign_det <- 1
+  }
+  
+  # Correct orientation by flipping last column of U if needed
+  if (sign_det < 0) {
+    U[, k_dims] <- -U[, k_dims]
+  }
+  
+  # Compute final rotation
+  R <- U %*% t(V)
+  
+  # Re-orthogonalize for numerical stability
+  # This ensures R is exactly orthogonal despite floating-point errors
+  sv_R <- svd(R)
+  R <- sv_R$u %*% t(sv_R$v)
   
   # Final sanity check on determinant (optional, should be close to 1 now)
   # final_det <- det(R)

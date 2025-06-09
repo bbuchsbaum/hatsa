@@ -32,10 +32,12 @@ test_that("perform_geometric_gpa_refinement handles zero subjects and invalid ma
   expect_true(all(is.na(res_empty$T_anchor_final)))
 
   bad_list <- list(matrix(1:6, 2, 3))
-  expect_error(
-    hatsa:::perform_geometric_gpa_refinement(bad_list, n_refine = 2, k = 3, m_rows = 4, verbose = FALSE),
-    "initial configurations"
+  expect_warning(
+    result <- hatsa:::perform_geometric_gpa_refinement(bad_list, n_refine = 2, k = 3, m_rows = 4, verbose = FALSE),
+    "invalid"
   )
+  expect_equal(length(result$R_final_list), 1)
+  expect_true(all(result$R_final_list[[1]] == diag(3)))
 })
 
 

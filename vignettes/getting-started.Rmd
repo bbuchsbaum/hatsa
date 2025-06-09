@@ -1,0 +1,123 @@
+---
+title: "Getting Started with HATSA"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with HATSA}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Getting Started with HATSA
+
+HATSA (Hyperalignment via Task-informed Shared Analysis) provides state-of-the-art methods for aligning functional brain data across subjects. This guide will get you started quickly.
+
+## Installation
+
+```{r eval=FALSE}
+# Install from GitHub
+devtools::install_github("bbuchsbaum/hatsa")
+```
+
+```{r setup}
+library(hatsa)
+```
+
+## Your First Alignment
+
+The simplest way to use HATSA is with the `hatsa()` function:
+
+```{r eval=FALSE}
+# Assume you have a list of subject data matrices
+# Each matrix is timepoints × voxels
+result <- hatsa(subject_data)
+
+# That's it! HATSA automatically:
+# - Selects optimal anchors
+# - Chooses appropriate parameters
+# - Performs the alignment
+```
+
+## Understanding Your Results
+
+HATSA provides simple functions to explore your results:
+
+```{r eval=FALSE}
+# Get a quick summary
+hatsa_summary(result)
+
+# Extract aligned data
+aligned_data <- get_aligned_data(result)
+
+# Get the group template
+template <- get_template(result)
+
+# Visualize alignment quality
+plot_hatsa(result, type = "eigenvalues")
+```
+
+## Choosing Parameters
+
+Not sure what parameters to use? Let HATSA help:
+
+```{r eval=FALSE}
+# Get suggestions based on your data
+params <- hatsa_suggest(subject_data)
+
+# Use the suggestions
+result <- hatsa(subject_data, 
+                components = params$components,
+                preset = params$preset)
+```
+
+## Task-Informed Alignment
+
+If you have task information, HATSA can use it to improve alignment:
+
+```{r eval=FALSE}
+# Automatic method selection
+result <- hatsa_task(subject_data, task_data)
+
+# Or choose a specific method
+result <- hatsa_task(subject_data, task_data, method = "blend")
+```
+
+## Presets for Different Scenarios
+
+HATSA includes presets optimized for different use cases:
+
+```{r eval=FALSE}
+# Fast mode for exploration
+result_fast <- hatsa(subject_data, preset = "fast")
+
+# Accurate mode for final analyses  
+result_accurate <- hatsa(subject_data, preset = "accurate")
+
+# Default balanced mode
+result_default <- hatsa(subject_data, preset = "default")
+```
+
+## Next Steps
+
+- Read the [Task-HATSA Guide](task-hatsa-guide.html) for task-informed analyses
+- See [Advanced Usage](advanced-usage.html) for custom configurations
+- Check [Troubleshooting](troubleshooting.html) for common issues
+
+## Getting Help
+
+```{r eval=FALSE}
+# Built-in documentation
+?hatsa
+?hatsa_task
+
+# Parameter validation
+hatsa_validate_params(subject_data, 
+                      anchor_indices = my_anchors,
+                      spectral_rank_k = 30)
+```

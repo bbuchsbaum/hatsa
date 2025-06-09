@@ -103,15 +103,13 @@ test_that("misalign_deg fallback mechanism when expm is not available", {
   # For 2x2, the fallback trace is trace(R)/2 for cos(theta)
   R1_2d <- diag(2)
   R2_2d <- matrix(c(cos(theta), -sin(theta), sin(theta), cos(theta)), 2,2)
-  expect_warning(
-    angle_fallback_2d <- misalign_deg(R2_2d, R1_2d, method="geodesic"),
-    "Package 'expm' not available for geodesic method. Using fallback trace-based calculation."
+  
+  # Capture all warnings for 2D case
+  warnings_2d <- capture_warnings(
+    angle_fallback_2d <- misalign_deg(R2_2d, R1_2d, method="geodesic")
   )
-  # Also, the k_dim != 3 warning for the fallback
-  expect_warning(
-    misalign_deg(R2_2d, R1_2d, method="geodesic"),
-    "Fallback trace-based angle is most accurate for 3x3 rotations \\(SO\\(3\\)\\)."
-  )
+  expect_true(any(grepl("Package 'expm' not available", warnings_2d)))
+  expect_true(any(grepl("Fallback trace-based angle is most accurate for 3x3 rotations", warnings_2d)))
   expect_equal(angle_fallback_2d, 45, tolerance = 1e-7)
 })
 
@@ -132,15 +130,13 @@ test_that("misalign_deg specific k_dim warnings for fallback", {
   R1_2d <- diag(2)
   R2_2d <- matrix(c(cos(theta), -sin(theta), sin(theta), cos(theta)), 2,2)
   
-  # Need to capture and check both warnings with a regex approach
-  expect_warning(
-    res <- misalign_deg(R2_2d, R1_2d, method="geodesic"),
-    "Package 'expm' not available for geodesic method"
+  # Check that we get the k_dim warning when using the fallback
+  # We need to capture all warnings and check that the k_dim warning is present
+  warnings_captured <- capture_warnings(
+    misalign_deg(R2_2d, R1_2d, method="geodesic")
   )
-  expect_warning(
-    misalign_deg(R2_2d, R1_2d, method="geodesic"),
-    "Fallback trace-based angle is most accurate for 3x3 rotations"
-  )
+  expect_true(any(grepl("Package 'expm' not available", warnings_captured)))
+  expect_true(any(grepl("Fallback trace-based angle is most accurate for 3x3 rotations", warnings_captured)))
   
   # k=4 should warn about k_dim != 3 for fallback accuracy
   R1_4d <- diag(4)
@@ -149,13 +145,10 @@ test_that("misalign_deg specific k_dim warnings for fallback", {
   R2_4d <- diag(4)
   R2_4d[1:2,1:2] <- R2_4d_block
   
-  # Need to capture and check both warnings with a regex approach
-  expect_warning(
-    res <- misalign_deg(R2_4d, R1_4d, method="geodesic"),
-    "Package 'expm' not available for geodesic method"
+  # Check that we get the k_dim warning when using the fallback
+  warnings_captured_4d <- capture_warnings(
+    misalign_deg(R2_4d, R1_4d, method="geodesic")
   )
-  expect_warning(
-    misalign_deg(R2_4d, R1_4d, method="geodesic"),
-    "Fallback trace-based angle is most accurate for 3x3 rotations"
-  )
+  expect_true(any(grepl("Package 'expm' not available", warnings_captured_4d)))
+  expect_true(any(grepl("Fallback trace-based angle is most accurate for 3x3 rotations", warnings_captured_4d)))
 }) })
