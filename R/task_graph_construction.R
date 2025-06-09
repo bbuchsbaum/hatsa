@@ -487,9 +487,8 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
         if (length(pos_idx) > 0) {
           pos_vals <- node_corrs_candidates[pos_idx]
           num_keep_pos <- min(k_pos, length(pos_vals))
-          part <- order(pos_vals, decreasing = TRUE,
-                        partial = seq_len(num_keep_pos))[seq_len(num_keep_pos)]
-          ord <- part[order(pos_vals[part], decreasing = TRUE)]
+          ord <- order(pos_vals, decreasing = TRUE)
+          ord <- head(ord, num_keep_pos)
           sel_idx_subset <- c(sel_idx_subset, pos_idx[ord])
           sel_vals <- c(sel_vals, pos_vals[ord])
         }
@@ -500,9 +499,8 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
         if (length(neg_idx) > 0) {
           neg_vals <- node_corrs_candidates[neg_idx]
           num_keep_neg <- min(k_neg, length(neg_vals))
-          part <- order(neg_vals, decreasing = FALSE,
-                        partial = seq_len(num_keep_neg))[seq_len(num_keep_neg)]
-          ord <- part[order(neg_vals[part], decreasing = FALSE)]
+          ord <- order(neg_vals, decreasing = FALSE)
+          ord <- head(ord, num_keep_neg)
           sel_idx_subset <- c(sel_idx_subset, neg_idx[ord])
           sel_vals <- c(sel_vals, neg_vals[ord])
         }
@@ -588,9 +586,8 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
         if (length(pos_idx) > 0) {
           pos_vals <- node_vals[pos_idx]
           num_keep <- min(k_pos, length(pos_vals))
-          ord <- order(pos_vals, decreasing = TRUE,
-                       partial = seq_len(num_keep))[seq_len(num_keep)]
-          ord <- ord[order(pos_vals[ord], decreasing = TRUE)]
+          ord <- order(pos_vals, decreasing = TRUE)
+          ord <- head(ord, num_keep)
           sel_idx <- c(sel_idx, pos_idx[ord])
           sel_vals <- c(sel_vals, pos_vals[ord])
         }
@@ -601,9 +598,8 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
         if (length(neg_idx) > 0) {
           neg_vals <- node_vals[neg_idx]
           num_keep <- min(k_neg, length(neg_vals))
-          ord <- order(neg_vals, decreasing = FALSE,
-                       partial = seq_len(num_keep))[seq_len(num_keep)]
-          ord <- ord[order(neg_vals[ord], decreasing = FALSE)]
+          ord <- order(neg_vals, decreasing = FALSE)
+          ord <- head(ord, num_keep)
           sel_idx <- c(sel_idx, neg_idx[ord])
           sel_vals <- c(sel_vals, neg_vals[ord])
         }
