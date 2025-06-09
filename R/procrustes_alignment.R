@@ -13,16 +13,26 @@ procrustes_rotation_basic <- function(A, T) {
   sv <- svd(M)
   U <- sv$u
   V <- sv$v
-  R_raw <- V %*% t(U)
-  sign_det <- sign(prod(diag(qr(R_raw)$qr)))
-  R <- R_raw
-  if (sign_det < 0) {
-    j_min <- which.min(sv$d)
-    V_corr <- V
-    V_corr[, j_min] <- -V_corr[, j_min]
-    R <- V_corr %*% t(U)
+
+  if (ncol(M) == 1L) {
+    # k = 1 case simplifies to the sign of the scalar cross-product
+    return(matrix(sign(M), 1L, 1L))
   }
-  R
+
+  # Use determinant of V and U for stable orientation check
+  sign_det <- sign(det(V) * det(U))
+  if (is.na(sign_det) || abs(sign_det) < .Machine$double.eps) sign_det <- 1
+
+  V_corr <- V
+  V_corr[, ncol(V_corr)] <- V_corr[, ncol(V_corr)] * sign_det
+
+  R <- V_corr %*% t(U)
+
+  # Re-orthogonalize for numerical stability
+  sv_R <- svd(R)
+  R_final <- sv_R$u %*% t(sv_R$v)
+
+  R_final
 }
 
 #' Solve Orthogonal Procrustes Problem for `R_i` in SO(k)
