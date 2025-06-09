@@ -1,5 +1,3 @@
-context("message_stage and null-coalescing operator")
-
 test_that("message_stage and %||% basic functionality", {
   expect_message(message_stage("hello", verbose = TRUE, interactive_only = FALSE), "hello")
   expect_silent(message_stage("quiet", verbose = FALSE, interactive_only = FALSE))

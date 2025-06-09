@@ -381,7 +381,7 @@ test_that("TCK-SGC-005: compute_graph_laplacian_sparse calculates L_rw_lazy_sym 
   
   W_tri <- sparseMatrix(i=i_upper, j=j_upper, x=x_upper, dims=c(4,4))
   W_sparse <- W_tri + Matrix::t(W_tri) # Construct symmetric matrix
-  W_sparse <- as(W_sparse, "dgCMatrix") # Ensure it's dgCMatrix for consistency
+  W_sparse <- as(as(W_sparse, "generalMatrix"), "CsparseMatrix") # Convert to general sparse format
 
   # Manual Calculation
   V_p <- nrow(W_sparse)
@@ -428,7 +428,7 @@ test_that("TCK-SGC-006: compute_graph_laplacian_sparse handles zero degree nodes
   
   W_tri <- sparseMatrix(i=i_upper, j=j_upper, x=x_upper, dims=c(4,4))
   W_sparse <- W_tri + Matrix::t(W_tri) # Construct symmetric matrix
-  W_sparse <- as(W_sparse, "dgCMatrix") # Ensure it's dgCMatrix
+  W_sparse <- as(as(W_sparse, "generalMatrix"), "CsparseMatrix") # Convert to general sparse format
 
   # Function Call
   output_L <- NULL
@@ -488,7 +488,7 @@ test_that("TCK-SGC-007: compute_spectral_sketch_sparse basic correctness & dimen
   L_sparse <- L_tri + t(L_tri)
   # Correct the diagonal after symmetrization (it gets doubled)
   Matrix::diag(L_sparse) <- Matrix::diag(L_sparse) / 2 
-  L_sparse <- as(L_sparse, "dgCMatrix") # Ensure type before eigen
+  L_sparse <- as(as(L_sparse, "generalMatrix"), "CsparseMatrix") # Convert to general sparse format
 
   # Calculate ground truth using base::eigen on the dense matrix
   eigen_gt <- eigen(as.matrix(L_sparse), symmetric = TRUE)
@@ -563,7 +563,7 @@ test_that("TCK-SGC-008: compute_spectral_sketch_sparse handles trivial eigenvect
   adj <- bandSparse(V_p, k = 1, diagonals = list(rep(1, V_p-1)), symmetric = TRUE)
   D <- Diagonal(V_p, x = Matrix::rowSums(adj))
   L_path <- D - adj
-  L_path <- as(L_path, "dgCMatrix")
+  L_path <- as(as(L_path, "generalMatrix"), "CsparseMatrix") # Convert to general sparse format
 
   # Function Call
   result <- NULL
@@ -606,7 +606,7 @@ test_that("TCK-SGC-009: compute_spectral_sketch_sparse handles rank deficiency",
 
   # Combine into a block diagonal matrix
   L_disconnected <- Matrix::bdiag(L1, L2)
-  L_disconnected <- as(L_disconnected, "dgCMatrix")
+  L_disconnected <- as(as(L_disconnected, "generalMatrix"), "CsparseMatrix") # Convert to general sparse format
   V_p_total <- nrow(L_disconnected) # Should be V_p1 + V_p2 = 7
   
   # This graph has 2 zero eigenvalues (one for each component).
@@ -642,7 +642,7 @@ test_that("TCK-SGC-010: compute_spectral_sketch_sparse edge cases k=0, k=1", {
   adj <- bandSparse(V_p, k = 1, diagonals = list(rep(1, V_p-1)), symmetric = TRUE)
   D <- Diagonal(V_p, x = Matrix::rowSums(adj))
   L_path <- D - adj
-  L_path <- as(L_path, "dgCMatrix")
+  L_path <- as(as(L_path, "generalMatrix"), "CsparseMatrix") # Convert to general sparse format
 
   # --- Test k = 0 --- 
   result_k0 <- NULL

@@ -101,11 +101,27 @@ hatsa_task <- function(data,
   # Configure based on method
   params <- configure_task_params(method, config, ...)
   
-  # Call the appropriate function
-  do.call(run_task_hatsa, c(
+  # Map method names to task_method values
+  task_method_map <- list(
+    blend = "lambda_blend",
+    gev = "gev_patch",
+    augmented = "lambda_blend"  # augmented uses lambda_blend with row_augmentation
+  )
+  
+  # Set task_method
+  params$task_method <- task_method_map[[method]]
+  
+  # Set augmentation flag for augmented method
+  if (method == "augmented") {
+    params$row_augmentation <- TRUE
+    params$lambda_blend_value <- 0  # No blending for augmented
+  }
+  
+  # Call the internal engine directly
+  do.call(.task_hatsa_engine, c(
     list(
       subject_data_list = data,
-      subject_task_activations_list = task_data,
+      task_data_list = task_data,
       anchor_indices = anchors,
       spectral_rank_k = components
     ),
@@ -120,20 +136,17 @@ hatsa_preset <- function(name) {
     default = list(
       k_conn_pos = 10,
       k_conn_neg = 10,
-      n_refine = 3,
-      alpha_lrw = 0.93
+      n_refine = 3
     ),
     fast = list(
       k_conn_pos = 5,
       k_conn_neg = 5,
-      n_refine = 1,
-      alpha_lrw = 0.9
+      n_refine = 1
     ),
     accurate = list(
       k_conn_pos = 20,
       k_conn_neg = 20,
-      n_refine = 5,
-      alpha_lrw = 0.95
+      n_refine = 5
     )
   )
   presets[[name]]
@@ -146,16 +159,16 @@ hatsa_task_preset <- function(preset_name, method) {
   
   method_defaults <- list(
     blend = list(
-      lambda_blend = 0.15,
-      auto_residualize = TRUE
+      lambda_blend_value = 0.15,
+      check_redundancy = TRUE
     ),
     gev = list(
-      lambda_max_thresh = 0.8,
-      min_stable_conditions = 2
+      gev_lambda_max = 0.8,
+      k_gev_dims = 10
     ),
     augmented = list(
-      augmentation_weight = 0.5,
-      normalize_augmentation = TRUE
+      row_augmentation = TRUE,
+      lambda_blend_value = 0
     )
   )
   
@@ -192,7 +205,7 @@ select_anchors_auto <- function(data, k, config) {
 select_task_method <- function(data, task_data) {
   # Simple heuristics for method selection
   n_timepoints <- nrow(data[[1]])
-  n_conditions <- ncol(task_data[[1]])
+  n_conditions <- nrow(task_data[[1]])  # Task data is C x V, so rows are conditions
   
   if (n_conditions > 10) {
     "gev"  # Many conditions benefit from GEV
@@ -210,21 +223,21 @@ configure_task_params <- function(method, base_config, ...) {
   
   # Set method-specific parameters
   if (method == "blend") {
-    base_config$lambda_blend <- user_params$lambda_blend %||% base_config$lambda_blend
-    base_config$auto_residualize <- user_params$auto_residualize %||% TRUE
+    base_config$lambda_blend_value <- user_params$lambda_blend_value %||% base_config$lambda_blend_value
+    base_config$check_redundancy <- user_params$check_redundancy %||% TRUE
   } else if (method == "gev") {
-    base_config$lambda_blend <- 0  # No blending for pure GEV
-    base_config$lambda_max_thresh <- user_params$lambda_max_thresh %||% 0.8
+    base_config$lambda_blend_value <- 0  # No blending for pure GEV
+    base_config$gev_lambda_max <- user_params$gev_lambda_max %||% 0.8
   } else if (method == "augmented") {
-    base_config$lambda_blend <- 0
-    base_config$augmentation_weight <- user_params$augmentation_weight %||% 0.5
+    base_config$lambda_blend_value <- 0
+    # Note: augmentation_weight is not a parameter of .task_hatsa_engine
   }
+  
+  # Remove any parameters that were incorrectly named
+  base_config$auto_residualize <- NULL
+  base_config$lambda_blend <- NULL
+  base_config$augmentation_weight <- NULL
   
   utils::modifyList(base_config, user_params)
 }
 
-#' Null-safe or operator
-#' @keywords internal
-`%||%` <- function(x, y) {
-  if (is.null(x)) y else x
-}

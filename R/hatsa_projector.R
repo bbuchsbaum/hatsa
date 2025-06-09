@@ -563,7 +563,7 @@ summary.hatsa_projector <- function(object, ...,
           return(NA)
         }
         R1t_R2 <- t(R1) %*% R2
-        log_R1t_R2 <- tryCatch(expm::logm(R1t_R2, method="Higham08.b"), error = function(e) {
+        log_R1t_R2 <- tryCatch(expm::logm(R1t_R2, method="Higham08"), error = function(e) {
           warning("Error in expm::logm: ", e$message)
           return(matrix(0, k_dim, k_dim))
         })

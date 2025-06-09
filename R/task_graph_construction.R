@@ -1,3 +1,12 @@
+# Helper function to convert to general sparse matrix format
+# This avoids the deprecated direct conversion to dgCMatrix
+.to_general_sparse <- function(mat) {
+  if (inherits(mat, "dgCMatrix")) {
+    return(mat)
+  }
+  return(as(as(mat, "generalMatrix"), "CsparseMatrix"))
+}
+
 #' Compute Task-Based Parcel Similarity Graph (W_task) from Activations
 #'
 #' Calculates a sparse, z-scored similarity graph between parcels based on their
@@ -47,7 +56,7 @@ compute_W_task_from_activations <- function(activation_matrix,
   if (V_p == 0) {
     # Ensure consistent return type (dgCMatrix) for empty graph
     empty_mat <- Matrix::Matrix(0, 0, 0, sparse = TRUE, dimnames = list(character(0), character(0)))
-    return(as(empty_mat, "dgCMatrix"))
+    return(.to_general_sparse(empty_mat))
   }
   if (length(parcel_names) != V_p) {
     stop("Length of 'parcel_names' must match the number of columns (parcels) in 'activation_matrix'.")
@@ -61,7 +70,7 @@ compute_W_task_from_activations <- function(activation_matrix,
     # For safety and explicitness if C_n = 0 (which causes cor error):
     if (C_n == 0) {
         empty_mat_vp <- Matrix::Matrix(0, nrow=V_p, ncol=V_p, sparse=TRUE, dimnames = list(parcel_names, parcel_names))
-        return(as(empty_mat_vp, "dgCMatrix"))
+        return(.to_general_sparse(empty_mat_vp))
     }
     # If C_n = 1, cor returns NAs, which are then set to 0. Resulting graph is empty.
     # This path will be handled by existing logic turning NAs to 0.
@@ -88,95 +97,6 @@ compute_W_task_from_activations <- function(activation_matrix,
   } else {
     stop("'similarity_method' must be 'pearson', 'spearman', or a function.")
   }
-## resolve please <<<<<<< codex/refactor-compute_w_task-methods-for-efficiency
-## =======
-
-  sim_matrix_dense[is.na(sim_matrix_dense)] <- 0
-  diag(sim_matrix_dense) <- 0
-
-  # 2. Sparsify
-  row_indices_list <- vector("list", V_p)
-  col_indices_list <- vector("list", V_p)
-  values_list <- vector("list", V_p)
-
-  if (k_conn_task_pos > 0 || k_conn_task_neg > 0) {
-    for (i in 1:V_p) {
-      node_sims <- sim_matrix_dense[i, ]
-      current_selected_indices <- integer(0)
-      current_selected_values <- numeric(0)
-
-      if (k_conn_task_pos > 0) {
-        pos_candidates_idx <- which(node_sims > 1e-9) 
-        if (length(pos_candidates_idx) > 0) {
-          pos_candidates_vals <- node_sims[pos_candidates_idx]
-          num_to_keep_pos <- min(k_conn_task_pos, length(pos_candidates_vals))
-          ordered_in_pos_group <- order(pos_candidates_vals, decreasing = TRUE)
-          top_pos_in_group_idx <- head(ordered_in_pos_group, num_to_keep_pos)
-
-          current_selected_indices <- c(current_selected_indices, pos_candidates_idx[top_pos_in_group_idx])
-          current_selected_values <- c(current_selected_values, pos_candidates_vals[top_pos_in_group_idx])
-        }
-      }
-
-      if (k_conn_task_neg > 0) {
-        neg_candidates_idx <- which(node_sims < -1e-9) 
-        if (length(neg_candidates_idx) > 0) {
-          neg_candidates_vals <- node_sims[neg_candidates_idx]
-          num_to_keep_neg <- min(k_conn_task_neg, length(neg_candidates_vals))
-          ordered_in_neg_group <- order(neg_candidates_vals, decreasing = FALSE)
-          top_neg_in_group_idx <- head(ordered_in_neg_group, num_to_keep_neg)
-
-          current_selected_indices <- c(current_selected_indices, neg_candidates_idx[top_neg_in_group_idx])
-          current_selected_values <- c(current_selected_values, neg_candidates_vals[top_neg_in_group_idx])
-        }
-      }
-
-      if(length(current_selected_indices) > 0) {
-          row_indices_list[[i]] <- rep(i, length(current_selected_indices))
-          col_indices_list[[i]] <- current_selected_indices
-          values_list[[i]] <- current_selected_values
-      }
-    }
-  }
-
-  final_row_indices <- unlist(row_indices_list[!sapply(row_indices_list, is.null)])
-  final_col_indices <- unlist(col_indices_list[!sapply(col_indices_list, is.null)])
-  final_values <- unlist(values_list[!sapply(values_list, is.null)])
-
-  W_dir_task <- if (length(final_row_indices) > 0) {
-    Matrix::sparseMatrix(
-      i = final_row_indices, j = final_col_indices, x = final_values,
-      dims = c(V_p, V_p), dimnames = list(parcel_names, parcel_names)
-    )
-  } else {
-    Matrix::Matrix(0, nrow=V_p, ncol=V_p, sparse=TRUE, dimnames = list(parcel_names, parcel_names))
-  }
-  W_dir_task <- Matrix::drop0(W_dir_task)
-
-  # 3. Symmetrize
-  W_dir_task_t <- Matrix::t(W_dir_task)
-  W_sum_task <- W_dir_task + W_dir_task_t
-  
-  W_den_task_val <- as.numeric((W_dir_task != 0) + (W_dir_task_t != 0))
-  W_den_task <- Matrix::Matrix(pmax(1, W_den_task_val), nrow=V_p, ncol=V_p, sparse=TRUE)
-
-  W_symmetric_raw_task <- W_sum_task / W_den_task
-  if (inherits(W_symmetric_raw_task, "sparseMatrix")) {
-    if (any(is.nan(W_symmetric_raw_task@x))) W_symmetric_raw_task@x[is.nan(W_symmetric_raw_task@x)] <- 0
-    if (any(is.infinite(W_symmetric_raw_task@x))) W_symmetric_raw_task@x[is.infinite(W_symmetric_raw_task@x)] <- 0
-  } else {
-    W_symmetric_raw_task[is.nan(W_symmetric_raw_task)] <- 0
-    W_symmetric_raw_task[is.infinite(W_symmetric_raw_task)] <- 0
-  }
-  W_symmetric_raw_task <- Matrix::drop0(W_symmetric_raw_task)
-  W_symmetric_task <- Matrix::forceSymmetric(W_symmetric_raw_task, uplo = "U")
-
-  # 4. Z-score non-zero edge weights
-  W_symmetric_task <- zscore_nonzero_sparse(W_symmetric_task)
-  W_task_i <- Matrix::drop0(W_symmetric_task)
-  
-  return(as(W_task_i, "dgCMatrix"))
-### resolve here >>>>>>> main
 }
 
 #' Compute Task-Based Parcel Similarity Graph (W_task) from Encoding Weights
@@ -226,7 +146,7 @@ compute_W_task_from_encoding <- function(encoding_weights_matrix,
   if (V_p == 0) {
     # Ensure consistent return type (dgCMatrix) for empty graph
     empty_mat <- Matrix::Matrix(0, 0, 0, sparse = TRUE, dimnames = list(character(0), character(0)))
-    return(as(empty_mat, "dgCMatrix"))
+    return(.to_general_sparse(empty_mat))
   }
   if (length(parcel_names) != V_p) {
     stop("Length of 'parcel_names' must match the number of rows (parcels) in 'encoding_weights_matrix'.")
@@ -235,7 +155,7 @@ compute_W_task_from_encoding <- function(encoding_weights_matrix,
      warning("compute_W_task_from_encoding: encoding_weights_matrix has zero features. Resulting graph will be empty.")
      # Ensure consistent return type (dgCMatrix) for empty graph
      empty_mat <- Matrix::Matrix(0, nrow=V_p, ncol=V_p, sparse=TRUE, dimnames = list(parcel_names, parcel_names))
-     return(as(empty_mat, "dgCMatrix"))
+     return(.to_general_sparse(empty_mat))
   }
 
   if (is.character(similarity_method) && similarity_method %in% c("pearson", "spearman")) {
@@ -259,91 +179,6 @@ compute_W_task_from_encoding <- function(encoding_weights_matrix,
   } else {
     stop("'similarity_method' must be 'pearson', 'spearman', or a function.")
   }
-## resolve please <<<<<<< codex/refactor-compute_w_task-methods-for-efficiency
-##=======
-
-  sim_matrix_dense[is.na(sim_matrix_dense)] <- 0
-  diag(sim_matrix_dense) <- 0
-
-  # 2. Sparsify
-  row_indices_list <- vector("list", V_p)
-  col_indices_list <- vector("list", V_p)
-  values_list <- vector("list", V_p)
-
-  if (k_conn_task_pos > 0 || k_conn_task_neg > 0) {
-    for (i in 1:V_p) {
-      node_sims <- sim_matrix_dense[i, ]
-      current_selected_indices <- integer(0)
-      current_selected_values <- numeric(0)
-
-      if (k_conn_task_pos > 0) {
-        pos_candidates_idx <- which(node_sims > 1e-9)
-        if (length(pos_candidates_idx) > 0) {
-          pos_candidates_vals <- node_sims[pos_candidates_idx]
-          num_to_keep_pos <- min(k_conn_task_pos, length(pos_candidates_vals))
-          ordered_in_pos_group <- order(pos_candidates_vals, decreasing = TRUE)
-          top_pos_in_group_idx <- head(ordered_in_pos_group, num_to_keep_pos)
-          current_selected_indices <- c(current_selected_indices, pos_candidates_idx[top_pos_in_group_idx])
-          current_selected_values <- c(current_selected_values, pos_candidates_vals[top_pos_in_group_idx])
-        }
-      }
-
-      if (k_conn_task_neg > 0) {
-        neg_candidates_idx <- which(node_sims < -1e-9)
-        if (length(neg_candidates_idx) > 0) {
-          neg_candidates_vals <- node_sims[neg_candidates_idx]
-          num_to_keep_neg <- min(k_conn_task_neg, length(neg_candidates_vals))
-          ordered_in_neg_group <- order(neg_candidates_vals, decreasing = FALSE)
-          top_neg_in_group_idx <- head(ordered_in_neg_group, num_to_keep_neg)
-          current_selected_indices <- c(current_selected_indices, neg_candidates_idx[top_neg_in_group_idx])
-          current_selected_values <- c(current_selected_values, neg_candidates_vals[top_neg_in_group_idx])
-        }
-      }
-
-      if(length(current_selected_indices) > 0) {
-          row_indices_list[[i]] <- rep(i, length(current_selected_indices))
-          col_indices_list[[i]] <- current_selected_indices
-          values_list[[i]] <- current_selected_values
-      }
-    }
-  }
-
-  final_row_indices <- unlist(row_indices_list[!sapply(row_indices_list, is.null)])
-  final_col_indices <- unlist(col_indices_list[!sapply(col_indices_list, is.null)])
-  final_values <- unlist(values_list[!sapply(values_list, is.null)])
-
-  W_dir_task <- if (length(final_row_indices) > 0) {
-    Matrix::sparseMatrix(
-      i = final_row_indices, j = final_col_indices, x = final_values,
-      dims = c(V_p, V_p), dimnames = list(parcel_names, parcel_names)
-    )
-  } else {
-    Matrix::Matrix(0, nrow=V_p, ncol=V_p, sparse=TRUE, dimnames = list(parcel_names, parcel_names))
-  }
-  W_dir_task <- Matrix::drop0(W_dir_task)
-
-  # 3. Symmetrize
-  W_dir_task_t <- Matrix::t(W_dir_task)
-  W_sum_task <- W_dir_task + W_dir_task_t
-  W_den_task_val <- as.numeric((W_dir_task != 0) + (W_dir_task_t != 0))
-  W_den_task <- Matrix::Matrix(pmax(1, W_den_task_val), nrow=V_p, ncol=V_p, sparse=TRUE)
-  W_symmetric_raw_task <- W_sum_task / W_den_task
-  if (inherits(W_symmetric_raw_task, "sparseMatrix")) {
-    if (any(is.nan(W_symmetric_raw_task@x))) W_symmetric_raw_task@x[is.nan(W_symmetric_raw_task@x)] <- 0
-    if (any(is.infinite(W_symmetric_raw_task@x))) W_symmetric_raw_task@x[is.infinite(W_symmetric_raw_task@x)] <- 0
-  } else {
-    W_symmetric_raw_task[is.nan(W_symmetric_raw_task)] <- 0
-    W_symmetric_raw_task[is.infinite(W_symmetric_raw_task)] <- 0
-  }
-  W_symmetric_raw_task <- Matrix::drop0(W_symmetric_raw_task)
-  W_symmetric_task <- Matrix::forceSymmetric(W_symmetric_raw_task, uplo = "U")
-
-  # 4. Z-score non-zero edge weights
-  W_symmetric_task <- zscore_nonzero_sparse(W_symmetric_task)
-  W_task_i <- Matrix::drop0(W_symmetric_task)
-  
-  return(as(W_task_i, "dgCMatrix"))
-### resolve please >>>>>>> main
 }
 
 #' Compute Correlation Between Two Sparse Graphs
@@ -563,7 +398,7 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
   }
 
   W_final <- zscore_nonzero_sparse(W_sym)
-  return(as(W_final, "dgCMatrix"))
+  return(.to_general_sparse(W_final))
 }
 
 # Internal helper: sparsify a dense similarity matrix and z-score edges
@@ -639,7 +474,7 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
   W_sym <- Matrix::forceSymmetric(W_sym_raw, uplo = "U")
 
   W_final <- zscore_nonzero_sparse(W_sym)
-  return(as(W_final, "dgCMatrix"))
+  return(.to_general_sparse(W_final))
 }
 
 # Internal helper to sparsify and z-score a symmetric matrix
@@ -653,7 +488,7 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
   }
 
   # Work with a sparse matrix directly to avoid unnecessary densification
-  input_matrix <- as(input_matrix, "dgCMatrix")
+  input_matrix <- .to_general_sparse(input_matrix)
   diag(input_matrix) <- 0 # Ensure diagonal is zero
 
   row_indices_list <- vector("list", V_p)
@@ -730,7 +565,7 @@ compute_graph_correlation <- function(W_graph1, W_graph2, max_edges = 2000000) {
   W_sym <- zscore_nonzero_sparse(W_sym)
   W_final <- Matrix::drop0(W_sym)
 
-  return(as(W_final, "dgCMatrix"))
+  return(.to_general_sparse(W_final))
 }
 
 #' Residualize Graph B based on Subspace from Graph A's Laplacian
@@ -894,7 +729,7 @@ blend_laplacians <- function(L_conn, L_task, lambda_blend_value, method = "linea
     L_hybrid <- (1 - lambda_blend_value) * L_conn + lambda_blend_value * L_task
 
     # Ensure output is dgCMatrix
-    return(as(L_hybrid, "dgCMatrix"))
+    return(.to_general_sparse(L_hybrid))
 
   } else {
     # Placeholder for future methods like "geo"

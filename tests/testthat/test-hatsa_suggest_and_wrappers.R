@@ -24,9 +24,11 @@ test_that("hatsa_validate_params checks anchors and components", {
 
 test_that("select_task_method chooses method based on data", {
   data <- list(matrix(rnorm(300), 100, 3))
-  task_many <- list(matrix(rnorm(200), 20, 10 + 1))
-  task_few <- list(matrix(rnorm(50), 25, 2))
+  # Task data format is C x V (conditions x parcels)
+  task_many <- list(matrix(rnorm(11 * 3), 11, 3))  # 11 conditions > 10 -> gev
+  task_few <- list(matrix(rnorm(2 * 3), 2, 3))     # 2 conditions < 3 -> augmented
+  task_medium <- list(matrix(rnorm(5 * 3), 5, 3))  # 5 conditions (3-10) -> blend
   expect_equal(select_task_method(data, task_many), "gev")
   expect_equal(select_task_method(data, task_few), "augmented")
-  expect_equal(select_task_method(data, list(matrix(rnorm(2000), 200, 5))), "blend")
+  expect_equal(select_task_method(data, task_medium), "blend")
 })

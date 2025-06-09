@@ -1,215 +1,178 @@
 # HATSA: Hyperalignment via Task-informed Shared Analysis
 
-**R Package for advanced functional connectivity alignment with task-informed features**
-
 [![R-CMD-check](https://github.com/bbuchsbaum/hatsa/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/bbuchsbaum/hatsa/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/bbuchsbaum/hatsa/branch/main/graph/badge.svg)](https://app.codecov.io/gh/bbuchsbaum/hatsa?branch=main)
-[![Status](https://img.shields.io/badge/Status-95%25%20Complete-brightgreen)](./HATSA_PROJECT_STATUS.md)
-[![Critical Path](https://img.shields.io/badge/Critical%20Path-All%20Implemented-brightgreen)](./HATSA_PROJECT_STATUS.md#critical-path-to-completion)
 
----
+## Overview
 
-## 🎯 **Current Status**
+HATSA (Hyperalignment via Task-informed Shared Analysis) is an R package that implements advanced methods for aligning functional neuroimaging data across subjects. The package addresses the fundamental challenge in functional neuroimaging of establishing correspondence between brain regions across individuals, enabling group-level analyses while preserving subject-specific functional organization.
 
-The HATSA package implements advanced hyperalignment methods for functional neuroimaging data, with **all major components and critical path functions implemented**.
+The core innovation of HATSA lies in its integration of task-informed features with graph-based spectral alignment, providing a principled approach to functional hyperalignment that leverages both resting-state connectivity and task-evoked activation patterns.
 
-## 🚀 **Quick Start**
+## Key Features
+
+### Core HATSA Algorithm
+- **Sparse graph-based alignment** using spectral decomposition of connectivity Laplacians
+- **Generalized Procrustes Analysis (GPA)** for optimal orthogonal transformations
+- **Anchor-based alignment** ensuring robust correspondence across subjects
+- **SO(k) manifold operations** with geodesic distance computations
+
+### Task-informed Extensions
+- **Lambda blending**: Weighted combination of connectivity and task-activation graphs
+- **GEV patches**: Generalized eigenvalue-based incorporation of task information
+- **Residualization methods** for handling redundancy between connectivity and task features
+
+### Advanced Capabilities
+- **Nyström extension** for projecting high-dimensional voxel data
+- **Riemannian geometry operations** on symmetric positive definite (SPD) manifolds
+- **Quality control metrics** and alignment validation
+- **Multivariate projection framework** integration
+
+## Installation
 
 ```r
-# Install the package
+# Install from GitHub
 devtools::install_github("bbuchsbaum/hatsa")
-library(hatsa)
-
-# Basic usage - automatic everything!
-result <- hatsa(subject_data)
-
-# Get aligned data and check quality
-aligned <- get_aligned_data(result)
-hatsa_summary(result)
-
-# Task-informed variant
-result <- hatsa_task(subject_data, task_data, method = "auto")
 ```
 
-**📊 Progress**: ~95% complete
-**📋 Current Focus**: Package polish and optimization tasks ([status details](./HATSA_PROJECT_STATUS.md#immediate-priorities-week-1))
-**⏱️ Estimated Completion**: 1-2 weeks  
+## Quick Start
 
----
-
-## 🚀 **Quick Start (Once Complete)**
+### Basic HATSA Alignment
 
 ```r
-# Install development version
-devtools::install_github("bbuchsbaum/hatsa")
-
-# Basic HATSA alignment
 library(hatsa)
-result <- run_hatsa_core(
-  subject_data_list = my_timeseries,
-  anchor_indices = c(1, 15, 23, 45, 67),
-  spectral_rank_k = 20
+
+# Core HATSA with automatic parameter selection
+result <- hatsa(subject_data_list)
+
+# Extract aligned data and examine results
+aligned_data <- get_aligned_data(result)
+summary(result)
+```
+
+### Task-informed HATSA
+
+```r
+# Task-informed alignment with lambda blending
+task_result <- hatsa_task(
+  subject_data_list = connectivity_data,
+  task_data_list = activation_maps,
+  method = "lambda_blend",
+  lambda = 0.3
 )
 
-# Task-informed HATSA  
-task_result <- run_task_hatsa(
-  subject_data_list = my_timeseries,
-  task_data_list = my_activation_maps,
+# GEV-based task integration
+gev_result <- hatsa_task(
+  subject_data_list = connectivity_data,
+  task_data_list = activation_maps,
+  method = "gev_patch",
+  k_gev_dims = 5
+)
+```
+
+### Advanced Usage
+
+```r
+# Detailed control over hyperalignment parameters
+result <- run_hatsa_core(
+  subject_data_list = timeseries_data,
   anchor_indices = c(1, 15, 23, 45, 67),
   spectral_rank_k = 20,
-  task_method = "lambda_blend"
+  k_conn_pos = 7,
+  k_conn_neg = 7,
+  n_refine = 3
 )
 
-# Project voxel data using Nyström extension
+# Project high-dimensional voxel data
 voxel_projections <- project_voxels(
   result, 
-  voxel_timeseries_list = my_voxel_data,
+  voxel_timeseries_list = voxel_data,
   voxel_coords = voxel_coordinates,
   parcel_coords = parcel_centroids
 )
 ```
 
----
+## Mathematical Foundation
 
-## ✅ **What's Implemented**
+HATSA implements a spectral approach to functional alignment based on the eigendecomposition of graph Laplacians derived from functional connectivity. The core algorithm:
 
-### **Core Architecture (100%)**
-- ✅ Full S3 class system (`hatsa_projector`, `task_hatsa_projector`)
-- ✅ Integration with `multivarious` package ecosystem
-- ✅ Comprehensive documentation and examples
-- ✅ Extensive test suite (400+ test cases)
+1. **Graph Construction**: Builds sparse k-NN graphs from subject-specific connectivity matrices
+2. **Spectral Decomposition**: Computes low-rank spectral sketches via Laplacian eigendecomposition
+3. **Anchor Alignment**: Establishes correspondence using anchor parcels across subjects
+4. **Procrustes Refinement**: Iteratively refines alignment via generalized Procrustes analysis
+5. **Projection**: Maps data to the common representational space
 
-### **Advanced Features (95%)**
-- ✅ **Task-informed HATSA**: Lambda blending and GEV patches
-- ✅ **Voxel projection**: Complete Nyström extension implementation
-- ✅ **Weighted alignment**: Omega-weighted Procrustes refinement
-- ✅ **Riemannian geometry**: SPD manifold operations
-- ✅ **Validation metrics**: Alignment quality assessment
+The task-informed extensions incorporate activation patterns through:
+- **Weighted graph combination** (lambda blending)
+- **Generalized eigenvalue problems** (GEV patches)
+- **Manifold-based integration** on SPD matrices
 
-### **Specialized Modules (90%)**
-- ✅ Anchor selection and optimization
-- ✅ Quality control plotting and diagnostics  
-- ✅ Graph construction methods
-- ✅ Projection and transformation utilities
+## Core Functions
 
----
+### Primary Interfaces
+- `hatsa()`: High-level interface for core HATSA alignment
+- `hatsa_task()`: Task-informed hyperalignment
+- `run_hatsa_core()`: Low-level core algorithm control
+- `run_task_hatsa()`: Detailed task-informed alignment
 
-## ✅ **Critical Path Completed**
+### Spectral Graph Methods
+- `compute_subject_connectivity_graph_sparse()`: Sparse connectivity graphs
+- `compute_graph_laplacian_sparse()`: Laplacian computation
+- `compute_spectral_sketch_sparse()`: Eigendecomposition
+- `solve_gev_laplacian_primme()`: Generalized eigenvalue solver
 
-All five foundational functions are fully implemented and tested:
+### Alignment and Projection
+- `solve_procrustes_rotation()`: Orthogonal alignment
+- `project_voxels()`: Nyström extension for voxel projection
+- `misalign_deg()`: SO(k) geodesic distances
 
-1. `compute_subject_connectivity_graph_sparse()` - Sparse correlation graphs
-2. `compute_graph_laplacian_sparse()` - Laplacian computation
-3. `compute_spectral_sketch_sparse()` - Eigendecomposition
-4. `misalign_deg()` - SO(k) geodesic distance
-5. `solve_gev_laplacian_primme()` - Generalized eigenvalue solver
+### Quality Control
+- `hatsa_summary()`: Alignment quality metrics
+- `plot_hatsa()`: Visualization methods
+- `reconstruction_error()`: Validation metrics
 
-**📋 Detailed status**: See [HATSA_PROJECT_STATUS.md](./HATSA_PROJECT_STATUS.md)
+## Dependencies
 
----
+### Required
+- `Matrix`: Sparse matrix operations
+- `PRIMME`: Generalized eigenvalue problems
+- `expm`: Matrix exponential/logarithm operations
+- `multivarious`: S3 projector framework
+- `RANN`: Fast nearest neighbor search
 
-## 📖 **Documentation**
+### Suggested
+- `vegan`: Procrustes analysis
+- `ggplot2`: Visualization
+- `testthat`: Testing framework
 
-- **[Project Status & Roadmap](./HATSA_PROJECT_STATUS.md)** - Current state and completion plan
-- **[Archived Planning Docs](./planning-docs/)** - Original design documents and mathematical foundations
-- **[Package Documentation](./man/)** - Function references and examples
-- **[Test Suite](./tests/testthat/)** - Comprehensive test coverage
+## Mathematical Details
 
----
+The package implements computations on several mathematical structures:
 
-## 🔧 **Development Setup**
+- **Special Orthogonal Group SO(k)**: Rotation matrices with geodesic distance metrics
+- **SPD Manifolds**: Riemannian operations on positive definite matrices  
+- **Graph Laplacians**: Spectral graph theory for connectivity analysis
+- **Stiefel Manifolds**: Orthogonal matrix optimization via Procrustes methods
 
-```bash
-# Clone and setup
-git clone https://github.com/bbuchsbaum/hatsa.git
-cd hatsa
+Numerical stability is ensured through:
+- Eigenvalue tolerance checking
+- SVD-based orthogonalization
+- Condition number monitoring
+- Robust matrix logarithms
 
-# Install dependencies
-R -e "install.packages(c('Matrix', 'RSpectra', 'PRIMME', 'expm', 'multivarious'))"
+## Citations
 
-# Test current state (all tests should pass)
-R -e "devtools::test()"
-
-# Check package structure
-R -e "devtools::check()"
-```
-
-### **Required Dependencies**
-- `Matrix` - Sparse matrix operations
-- `RSpectra` - Sparse eigendecomposition  
-- `PRIMME` - Generalized eigenvalue problems
-- `expm` - Matrix exponential/logarithm
-- `multivarious` - S3 projector framework
-
----
-
-## 🎯 **Next Steps for Contributors**
-
-### **Immediate Priority (Week 1)**
-Address the remaining polish tasks outlined in [HATSA_PROJECT_STATUS.md](./HATSA_PROJECT_STATUS.md):
-
-1. Update `DESCRIPTION` dependencies
-2. Resolve import conflicts
-3. Fix deprecation warnings
-
-### **Integration Testing (Week 2)**
-1. Validate full HATSA pipeline
-2. Test task-informed extensions
-3. Verify voxel projection functionality
-4. Performance optimization
-
-### **Ready for Testing**
-- ✅ Comprehensive test suite already written
-- ✅ Mathematical specifications documented  
-- ✅ Function signatures defined
-- ✅ Expected outputs specified
-
----
-
-## 📊 **Package Statistics**
-
-| Component | Status | Files | Lines |
-|-----------|--------|--------|-------|
-| **R Source** | 95% | 23 files | ~47K lines |
-| **Tests** | Ready | 11 files | ~11K lines |  
-| **Documentation** | 95% | 57 functions | Complete |
-| **Examples** | 90% | All modules | Working |
-
----
-
-## 🏗️ **Architecture Overview**
+When using HATSA in your research, please cite:
 
 ```
-hatsa/
-├── R/
-│   ├── hatsa_core_algorithm.R      # Main HATSA workflow
-│   ├── task_hatsa_main.R           # Task-informed extensions  
-│   ├── voxel_projection.R          # Nyström voxel mapping
-│   ├── spectral_graph_construction.R  # Core functions implemented
-│   ├── riemannian_geometry.R       # SPD manifold operations
-│   └── [18 other modules]          # Specialized functionality
-├── tests/testthat/
-│   ├── test-hatsa_core_functionality.R
-│   ├── test-spectral_graph_construction.R  # Ready to test
-│   └── [9 other test files]
-└── planning-docs/                  # Archived planning documents
+Buchsbaum, B.R. (2024). HATSA: Hyperalignment via Task-informed Shared Analysis. 
+R package version 0.1.0. https://github.com/bbuchsbaum/hatsa
 ```
 
----
-
-## 🤝 **Contributing**
-
-1. **Focus on Polish**: Finalize documentation and dependency fixes
-2. **Follow Test-Driven Development**: Comprehensive tests already exist
-3. **Reference Documentation**: Mathematical specs in `planning-docs/` folder
-4. **Check Integration**: Ensure functions work with existing S3 methods
-
----
-
-## 📜 **License**
+## License
 
 MIT License - See LICENSE file for details.
 
----
+## Contributing
 
-**🎯 Ready to complete this project? Start with [HATSA_PROJECT_STATUS.md](./HATSA_PROJECT_STATUS.md) for detailed implementation tickets.** 
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. 

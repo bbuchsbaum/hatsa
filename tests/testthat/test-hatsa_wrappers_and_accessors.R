@@ -6,7 +6,8 @@ skip_on_cran()
 }
 
 .gen_task_data <- function(N, T_len, C, V) {
-  lapply(seq_len(N), function(i) matrix(rnorm(T_len * C), nrow = T_len, ncol = C))
+  # Task data should be C x V (conditions x parcels) for activation matrices
+  lapply(seq_len(N), function(i) matrix(rnorm(C * V), nrow = C, ncol = V))
 }
 
 # Test hatsa wrapper with preset parameters
@@ -31,7 +32,7 @@ test_that("hatsa_task selects method automatically", {
   res <- suppressMessages(hatsa_task(subj, task, anchors = 1:2, components = 2,
                                      method = "auto", preset = "fast"))
   expect_s3_class(res, "task_hatsa_projector")
-  expect_equal(res$parameters$task_method, "gev")
+  expect_equal(res$parameters$task_method, "gev_patch")
 })
 
 # Test accessor functions on hatsa output

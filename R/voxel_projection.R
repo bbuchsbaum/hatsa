@@ -1,3 +1,12 @@
+# Helper function to convert to general sparse matrix format
+# This avoids the deprecated direct conversion to dgCMatrix
+.to_general_sparse <- function(mat) {
+  if (inherits(mat, "dgCMatrix")) {
+    return(mat)
+  }
+  return(as(as(mat, "generalMatrix"), "CsparseMatrix"))
+}
+
 #' Compute Nyström Voxel Basis (Phi_voxel)
 #'
 #' Internal helper function to compute the Nyström extension basis for projecting
@@ -151,7 +160,7 @@ compute_voxel_basis_nystrom <- function(voxel_coords, parcel_coords,
     message_stage("Using provided W_vox_parc matrix.", interactive_only=TRUE)
     if (!inherits(W_vox_parc, "dgCMatrix")) {
         warning("Provided `W_vox_parc` is not a dgCMatrix. Attempting to coerce.")
-        W_vox_parc <- as(W_vox_parc, "dgCMatrix")
+        W_vox_parc <- .to_general_sparse(W_vox_parc)
     }
     if (nrow(W_vox_parc) != V_v || ncol(W_vox_parc) != V_p) {
       stop(sprintf("Provided `W_vox_parc` has dimensions [%d x %d], expected [%d x %d] based on voxel/parcel counts.",
@@ -574,7 +583,7 @@ project_voxels.hatsa_projector <- function(object,
     W_vox_parc <- as(W_T, "CsparseMatrix")
   } else {
     if (!inherits(W_vox_parc, "dgCMatrix")) {
-      W_vox_parc <- as(W_vox_parc, "dgCMatrix")
+      W_vox_parc <- .to_general_sparse(W_vox_parc)
     }
     if (nrow(W_vox_parc) != V_v || ncol(W_vox_parc) != object$parameters$V_p) {
       stop(sprintf("Provided `W_vox_parc` has dimensions [%d x %d], expected [%d x %d]",
