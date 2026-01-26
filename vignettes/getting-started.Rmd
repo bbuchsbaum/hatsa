@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 # Getting Started with HATSA
 
-HATSA (Hyperalignment via Task-informed Shared Analysis) provides state-of-the-art methods for aligning functional brain data across subjects. This guide will get you started quickly.
+HATSA (Hyperalignment via Task-informed Shared Analysis) provides methods for aligning functional brain data across subjects, with optional task-informed variants. This guide shows the basic workflow and the main entry points.
 
 ## Installation
 
@@ -35,13 +35,13 @@ The simplest way to use HATSA is with the `hatsa()` function:
 
 ```{r eval=FALSE}
 # Assume you have a list of subject data matrices
-# Each matrix is timepoints × voxels
+# Each matrix is timepoints × parcels (or voxels)
 result <- hatsa(subject_data)
 
-# That's it! HATSA automatically:
-# - Selects optimal anchors
-# - Chooses appropriate parameters
-# - Performs the alignment
+# By default, HATSA:
+# - Selects anchors automatically (MRA-based)
+# - Uses a preset configuration (default/fast/accurate)
+# - Returns a fitted `hatsa_projector`
 ```
 
 ## Understanding Your Results
@@ -81,11 +81,25 @@ result <- hatsa(subject_data,
 If you have task information, HATSA can use it to improve alignment:
 
 ```{r eval=FALSE}
-# Automatic method selection
-result <- hatsa_task(subject_data, task_data)
+# task_data is a list parallel to subject_data.
+# Each task matrix should be either:
+#   - C × V_p (features/conditions × parcels), or
+#   - V_p × C (parcels × features)
+#
+# Automatic method selection + automatic anchors
+result <- hatsa_task(subject_data, task_data, method = "auto")
 
 # Or choose a specific method
-result <- hatsa_task(subject_data, task_data, method = "blend")
+result <- hatsa_task(subject_data, task_data, method = "blend", task_strength = "strong")
+
+# More control: build a validated config and pass it to task_hatsa()
+cfg <- hatsa_config(preset = "default", task_method = "lambda_blend", lambda_blend_value = 0.25)
+result2 <- task_hatsa(subject_data_list = subject_data,
+                      task_data_list = task_data,
+                      anchor_indices = 1:min(50, ncol(subject_data[[1]])),
+                      spectral_rank_k = 20,
+                      task_method = "lambda_blend",
+                      opts = cfg)
 ```
 
 ## Presets for Different Scenarios
@@ -105,9 +119,7 @@ result_default <- hatsa(subject_data, preset = "default")
 
 ## Next Steps
 
-- Read the [Task-HATSA Guide](task-hatsa-guide.html) for task-informed analyses
-- See [Advanced Usage](advanced-usage.html) for custom configurations
-- Check [Troubleshooting](troubleshooting.html) for common issues
+- See the `core-hatsa-toy-example` vignette for a reproducible end-to-end example.
 
 ## Getting Help
 
@@ -115,6 +127,7 @@ result_default <- hatsa(subject_data, preset = "default")
 # Built-in documentation
 ?hatsa
 ?hatsa_task
+?hatsa_config
 
 # Parameter validation
 hatsa_validate_params(subject_data, 

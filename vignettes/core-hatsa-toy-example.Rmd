@@ -14,8 +14,6 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-# Ensure hatsa is loaded for the vignette
-# library(hatsa) # This will be loaded in a later chunk explicitly for clarity
 ```
 
 ## Introduction
@@ -35,38 +33,9 @@ The key properties of this synthetic data are:
 The following functions define the toy-connectome generator and a helper to calculate misalignment angles.
 
 ```{r toy_generator_definition, echo = TRUE}
-suppressPackageStartupMessages({
-  library(Matrix)  # For sparse matrices
-  library(RSpectra) # For fast partial eigendecompositions
-  # library(hatsa) # Will be loaded explicitly when used
-  # expm is suggested by misalign_deg, which is now a package function
-})
-
-# The misalign_deg function is now part of the hatsa package and will be available
-# after library(hatsa) is called in the next chunk.
-# The safe_logm helper is internal to that function.
-
-#' Generate Toy Data for Core HATSA
-#'
-#' Creates synthetic time-series data for multiple subjects with a known
-#' underlying spectral structure and subject-specific rotations.
-#' This version incorporates feedback for improved realism and correctness.
-#'
-#' @param V Integer, number of parcels (nodes). Default 40.
-#' @param k Integer, spectral rank (number of eigenvectors). Default 5.
-#' @param Nsubj Integer, number of subjects. Default 6.
-#' @param Tlen Integer, number of time points per subject. Default 300.
-#' @param snr Numeric, signal-to-noise ratio. Default 2.5.
-#' @param seed Integer, random seed for reproducibility. Default 42.
-#' @param phi Numeric, AR(1) coefficient for latent dynamics. Default 0.6.
-#' @return A list containing:
-#'   \itemize{
-#'     \item{`X_list`}{A list of `Nsubj` matrices, each `Tlen x V`, representing subject time-series data.}
-#'     \item{`U_true`}{The `V x k` ground-truth spectral basis (eigenvectors).}
-#'     \item{`R_true_list`}{A list of `Nsubj` `k x k` ground-truth rotation matrices.}
-#'     \item{`L_true_ring`}{The `V x V` true ring Laplacian matrix used.}
-#'     \item{`eigenvalues_true`}{The first `k` eigenvalues of `L_true_ring`.}
-#'   }
+# Generate toy data for Core HATSA.
+# Creates synthetic time-series data for multiple subjects with a known
+# underlying spectral structure and subject-specific rotations.
 make_toy_hatsa <- function(V=40, k=5, Nsubj=6, Tlen=300,
                            snr=2.5, seed=42, phi=0.6){
   set.seed(seed)
@@ -77,8 +46,10 @@ make_toy_hatsa <- function(V=40, k=5, Nsubj=6, Tlen=300,
       x = 1, dims = c(V,V))
   D <- Matrix::Diagonal(x = Matrix::rowSums(ringW))
   L <- D - ringW
-  e  <- RSpectra::eigs_sym(L, k = k, which = "SA")
-  U0 <- e$vectors
+  # Use PRIMME (an Imports dependency of hatsa) to avoid requiring extra vignette deps.
+  e <- PRIMME::eigs_sym(L, NEig = k, which = "SM", tol = 1e-10)
+  ord <- order(e$values)
+  U0 <- e$vectors[, ord, drop = FALSE]
 
   rand_SO <- function(p){
     Q <- qr.Q(qr(matrix(rnorm(p*p),p)))
@@ -109,22 +80,8 @@ make_toy_hatsa <- function(V=40, k=5, Nsubj=6, Tlen=300,
   })
 
   list(X_list=X_list,U_true=U0,R_true_list=R_list,
-       L_true_ring=L,eigenvalues_true=e$values[1:k]) # Return only the k eigenvalues for U0
+       L_true_ring=L,eigenvalues_true=e$values[ord]) # Return only the k eigenvalues for U0
 }
-
-# Helper for safe matrix logarithm, returning NULL on error
-safe_logm <- function(M) {
-  res <- tryCatch(
-    expm::logm(M),
-    error = function(e) {
-      warning(paste("Matrix logarithm failed:", e$message, ". Using trace-based heuristic for misalignment."))
-      return(NULL)
-    }
-  )
-  return(res)
-}
-
-
 ```
 
 ## Running Core HATSA on Toy Data
@@ -152,30 +109,6 @@ R_true_list_toy <- toy_data$R_true_list
 anchor_indices_toy <- 1:10 
 k_spectral_rank_toy <- 5 # Must match k from toy data generation for meaningful comparison
 
-# HATSA parameters (using defaults or simple values for demonstration)
-# Refer to `?task_hatsa` for detailed parameter descriptions.
-params_core_hatsa <- list(
-  subject_data_list = X_list_toy,
-  task_data_list = NULL, # Indicates core_hatsa method
-  anchor_indices = anchor_indices_toy,
-  spectral_rank_k = k_spectral_rank_toy,
-  # Vp and Nsub can often be inferred, but good to be explicit if known
-  Vp = ncol(X_list_toy[[1]]), 
-  Nsub = length(X_list_toy),
-  
-  # Graph construction and refinement parameters (using some defaults)
-  k_conn_pos = 7,       # For k-NN graph construction
-  k_conn_neg = 7,       # For k-NN graph construction (negative weights)
-  n_refine = 2,         # Number of GPA refinement iterations
-  alpha_laplacian = 0.95, # For lazy random walk Laplacian
-  
-  # GPA parameters - gpa_method is handled internally
-  
-  # Control verbosity and parallel processing
-  verbose = FALSE,
-  future_plan = "sequential" # For deterministic vignette run
-)
-
 # 3. Run Core HATSA
 # We use `task_hatsa` with `task_data_list = NULL` for core HATSA.
 # Set future plan for sequential execution for deterministic vignette run
@@ -188,19 +121,22 @@ if (requireNamespace("future", quietly = TRUE)) {
 }
 
 message("Running Core HATSA on toy data...")
-# Parameters are passed via task_hatsa_opts
+# Parameters are passed via a validated config object
+cfg_core <- hatsa_config(
+  preset = "default",
+  task_method = "core_hatsa",
+  k_conn_pos = 7,
+  k_conn_neg = 7,
+  n_refine = 2,
+  alpha_laplacian = 0.95 # alpha-lazy symmetric normalized Laplacian
+)
 hatsa_results_toy <- task_hatsa(
     subject_data_list = X_list_toy,
     anchor_indices    = anchor_indices_toy,
     spectral_rank_k   = k_spectral_rank_toy,
     task_data_list    = NULL,             # Ensures core_hatsa method is triggered
     task_method       = "core_hatsa",
-    opts = task_hatsa_opts(
-      k_conn_pos      = 7,
-      k_conn_neg      = 7,
-      n_refine        = 2,
-      alpha_laplacian = 0.95
-    ),
+    opts = cfg_core,
     verbose = FALSE
 )
 message("Core HATSA run complete.")
@@ -210,7 +146,10 @@ R_est_list_toy <- hatsa_results_toy$R_final_list
 
 # 5. Evaluate Misalignment
 misalignment_scores <- sapply(1:length(R_est_list_toy), function(i) {
-  misalign_deg(R_est_list_toy[[i]], R_true_list_toy[[i]])
+  # `R_final_list[[i]]` is applied on the right: U_i %*% R_final aligns subject i to the template.
+  # With the generator below, the subject-specific basis is U_true %*% R_true, so the aligning
+  # rotation is approximately t(R_true).
+  misalign_deg(R_est_list_toy[[i]], t(R_true_list_toy[[i]]))
 })
 
 print("Misalignment angles (degrees) between estimated and true rotations:")
@@ -270,6 +209,3 @@ The toy-connectome generator can be extended to test various aspects of HATSA:
 *   **Task Data Simulation**: Extend the latent dynamics to include event-locked responses, generate corresponding beta maps or activation patterns, and use these to test task-guided HATSA variants (though this vignette focuses on core HATSA).
 
 This simple, deterministic toy example provides a powerful way to understand, debug, and validate the core HATSA algorithm.
-
-
-</rewritten_file> 
